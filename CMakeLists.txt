@@ -1,0 +1,8 @@
+add_executable(wav2vvd wav2vvd.cpp mfcc.cpp midi.cpp)
+add_executable(test_mfcc test_mfcc.cpp mfcc.cpp midi.cpp)
+add_executable(vvd2wav vvd2wav.cpp mfcc.cpp midi.cpp)
+add_executable(epr-buildmodel epr_buildmodel.cpp mfcc.cpp epr.cpp)
+target_link_libraries(wav2vvd world)
+target_link_libraries(test_mfcc world)
+target_link_libraries(vvd2wav world)
+target_link_libraries(epr-buildmodel world)

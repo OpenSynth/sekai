@@ -1,0 +1,30 @@
+#!/usr/bin/python
+
+import subprocess
+import os
+import sys
+
+def configure():
+	os.mkdir("build")
+	os.chdir("build")
+	subprocess.call(["cmake",".."])
+
+def make():
+	if os.path.isdir("build"):
+		os.chdir("build")
+		subprocess.call(["make"])
+	else:
+		print "project is not configured: run ./bld configure"
+
+def install():#currently not used
+	if os.path.isdir("build"):
+		os.chdir("build")
+		subprocess.call(["make","install"])
+	else:
+		print "project is not configured: run ./bld configure"
+	
+	
+if len(sys.argv)==2 and sys.argv[1]=="configure": configure()
+elif len(sys.argv)==1: make() 
+#elif len(sys.argv)==2 and sys.argv[1]=="install": install()
+
