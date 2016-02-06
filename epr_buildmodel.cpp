@@ -174,9 +174,6 @@ int main(int argc, char *argv[])
     int fft_size = GetFFTSizeForCheapTrick(fs);
     //ignore flags
 
-
-
-
     double *f0 = new double[f0_length];
     double *time_axis = new double[f0_length];
     float **mel_cepstrum1 = new float*[f0_length];

@@ -31,7 +31,10 @@ namespace {
 
   void ParameterModification(int argc, char *argv[], int fs, double *f0,
 			     int f0_length, double **spectrogram) {
-    int fft_size = GetFFTSizeForCheapTrick(fs);
+					 
+	CheapTrickOption option = {0};
+    InitializeCheapTrickOption(&option);
+    int fft_size = GetFFTSizeForCheapTrick(fs,&option);
     // F0 scaling
     if (argc >= 4) {
       double shift = atof(argv[3]);
@@ -100,6 +103,62 @@ namespace {
 
 }  // namespace
 
+void wavwrite(double *x, int x_length, int fs, int nbit, char *filename) {
+  FILE *fp = fopen(filename, "wb");
+  if (fp == NULL) {
+    printf("File cannot be opened.\n");
+    return;
+  }
+
+  char text[4] = {'R', 'I', 'F', 'F'};
+  uint32_t long_number = 36 + x_length * 2;
+  fwrite(text, 1, 4, fp);
+  fwrite(&long_number, 4, 1, fp);
+
+  text[0] = 'W';
+  text[1] = 'A';
+  text[2] = 'V';
+  text[3] = 'E';
+  fwrite(text, 1, 4, fp);
+  text[0] = 'f';
+  text[1] = 'm';
+  text[2] = 't';
+  text[3] = ' ';
+  fwrite(text, 1, 4, fp);
+
+  long_number = 16;
+  fwrite(&long_number, 4, 1, fp);
+  int16_t short_number = 1;
+  fwrite(&short_number, 2, 1, fp);
+  short_number = 1;
+  fwrite(&short_number, 2, 1, fp);
+  long_number = fs;
+  fwrite(&long_number, 4, 1, fp);
+  long_number = fs * 2;
+  fwrite(&long_number, 4, 1, fp);
+  short_number = 2;
+  fwrite(&short_number, 2, 1, fp);
+  short_number = 16;
+  fwrite(&short_number, 2, 1, fp);
+
+  text[0] = 'd';
+  text[1] = 'a';
+  text[2] = 't';
+  text[3] = 'a';
+  fwrite(text, 1, 4, fp);
+  long_number = x_length * 2;
+  fwrite(&long_number, 4, 1, fp);
+
+  int16_t tmp_signal;
+  for (int i = 0; i < x_length; ++i) {
+    tmp_signal = static_cast<int16_t>(MyMaxInt(-32768,
+        MyMinInt(32767, static_cast<int>(x[i] * 32767))));
+    fwrite(&tmp_signal, 2, 1, fp);
+  }
+
+  fclose(fp);
+}
+
 //-----------------------------------------------------------------------------
 // Test program.
 // test.exe input.wav outout.wav f0 spec flag
@@ -124,7 +183,9 @@ int main(int argc, char *argv[]) {
   double frame_period = hdr.frame_period;
   int cepstrum_length = hdr.cepstrum_length;
   int fs = hdr.fs;
-  int fft_size = GetFFTSizeForCheapTrick(fs);
+  CheapTrickOption option = {0};
+  InitializeCheapTrickOption(&option);
+  int fft_size = GetFFTSizeForCheapTrick(fs,&option);
   //ignore flags
   
 

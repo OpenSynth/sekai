@@ -172,6 +172,12 @@ int EprVocalTractEstimate(double* spectrogram,int fft_size,int fs,double f0,EprS
     {
         getBandwidth(tmp,fft_size,fs,&res[i]);
     }
+    for(int i=0;i<fft_size/2+1;i++)
+    {
+	double f = i*fs*1.0/fft_size;
+	double db = TWENTY_OVER_LOG10 * log(spectrogram[i]);
+	tmp[i] = db-EprAtFrequency(params,f,fs,res,6);
+    }
     return count;
 
 }
@@ -182,7 +188,7 @@ double EprAtFrequency(EprSourceParams* params,double f,int fs,EprResonance* res,
   double source  = 0;
   if(params) source = params->gaindb + params->slopedepthdb * ( pow(M_E,params->slope*f)-1 );
 
-  double accu = 0;//TODO: use minimal value here
+  double accu = 0.0000001;//TODO: use minimal value here
   for(int i=0;i<n_res;i++)
     {
       double x = EprResonanceAtFrequency(&res[i],f,fs);

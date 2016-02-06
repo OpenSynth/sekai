@@ -62,7 +62,7 @@ namespace {
 
     printf("\nAnalysis\n");
     DWORD elapsed_time = timeGetTime();
-    Dio(x, x_length, fs, option, time_axis, f0);
+    Dio(x, x_length, fs, &option, time_axis, f0);
     printf("DIO: %d [msec]\n", timeGetTime() - elapsed_time);
 
     for (int i = 0; i < f0_length; ++i)
@@ -94,7 +94,7 @@ namespace {
     CheapTrick(x, x_length, fs, time_axis, f0, f0_length, &option, spectrogram);
     printf("CheapTrick: %d [msec]\n", timeGetTime() - elapsed_time);
 
-    int fft_size = GetFFTSizeForCheapTrick(fs);
+    int fft_size = GetFFTSizeForCheapTrick(fs,&option);
 
     for(int i=0;i<f0_length;i++)
       {
@@ -123,7 +123,10 @@ namespace {
 
   void ParameterModification(int argc, char *argv[], int fs, double *f0,
 			     int f0_length, double **spectrogram) {
-    int fft_size = GetFFTSizeForCheapTrick(fs);
+					 
+	CheapTrickOption option = {0};
+    InitializeCheapTrickOption(&option);
+    int fft_size = GetFFTSizeForCheapTrick(fs,&option);
     // F0 scaling
     if (argc >= 4) {
       double shift = atof(argv[3]);
@@ -183,6 +186,129 @@ namespace {
 }  // namespace
 
 //-----------------------------------------------------------------------------
+// CheckHeader() checks the .wav header. This function can only support the
+// monaural wave file. This function is only used in waveread().
+//-----------------------------------------------------------------------------
+bool CheckHeader(FILE *fp) {
+  char data_check[5];
+  fread(data_check, 1, 4, fp);  // "RIFF"
+  data_check[4] = '\0';
+  if (0 != strcmp(data_check, "RIFF")) {
+    printf("RIFF error.\n");
+    return false;
+  }
+  fseek(fp, 4, SEEK_CUR);
+  fread(data_check, 1, 4, fp);  // "WAVE"
+  if (0 != strcmp(data_check, "WAVE")) {
+    printf("WAVE error.\n");
+    return false;
+  }
+  fread(data_check, 1, 4, fp);  // "fmt "
+  if (0 != strcmp(data_check, "fmt ")) {
+    printf("fmt error.\n");
+    return false;
+  }
+  fread(data_check, 1, 4, fp);  // 1 0 0 0
+  if (!(16 == data_check[0] && 0 == data_check[1] &&
+      0 == data_check[2] && 0 == data_check[3])) {
+    printf("fmt (2) error.\n");
+    return false;
+  }
+  fread(data_check, 1, 2, fp);  // 1 0
+  if (!(1 == data_check[0] && 0 == data_check[1])) {
+    printf("Format ID error.\n");
+    return false;
+  }
+  fread(data_check, 1, 2, fp);  // 1 0
+  if (!(1 == data_check[0] && 0 == data_check[1])) {
+    printf("This function cannot support stereo file\n");
+    return false;
+  }
+  return true;
+}
+
+//-----------------------------------------------------------------------------
+// GetParameters() extracts fp, nbit, wav_length from the .wav file
+// This function is only used in wavread().
+//-----------------------------------------------------------------------------
+bool GetParameters(FILE *fp, int *fs, int *nbit, int *wav_length) {
+  char data_check[5] = {0};
+  data_check[4] = '\0';
+  unsigned char for_int_number[4];
+  fread(for_int_number, 1, 4, fp);
+  *fs = 0;
+  for (int i = 3; i >= 0; --i) *fs = *fs * 256 + for_int_number[i];
+  // Quantization
+  fseek(fp, 6, SEEK_CUR);
+  fread(for_int_number, 1, 2, fp);
+  *nbit = for_int_number[0];
+
+  // Skip until "data" is found. 2011/03/28
+  while (0 != fread(data_check, 1, 1, fp)) {
+    if (data_check[0] == 'd') {
+      fread(&data_check[1], 1, 3, fp);
+      if (0 != strcmp(data_check, "data")) {
+        fseek(fp, -3, SEEK_CUR);
+      } else {
+        break;
+      }
+    }
+  }
+  if (0 != strcmp(data_check, "data")) {
+    printf("data error.\n");
+    return false;
+  }
+
+  fread(for_int_number, 1, 4, fp);  // "data"
+  *wav_length = 0;
+  for (int i = 3; i >= 0; --i)
+    *wav_length = *wav_length * 256 + for_int_number[i];
+  *wav_length /= (*nbit / 8);
+  return true;
+}
+
+double * wavread(char* filename, int *fs, int *nbit, int *wav_length) {
+  FILE *fp = fopen(filename, "rb");
+  if (NULL == fp) {
+    printf("File not found.\n");
+    return NULL;
+  }
+
+  if (CheckHeader(fp) == false) {
+    fclose(fp);
+    return NULL;
+  }
+
+  if (GetParameters(fp, fs, nbit, wav_length) == false) {
+    fclose(fp);
+    return NULL;
+  }
+
+  double *waveform = new double[*wav_length];
+  if (waveform == NULL) return NULL;
+
+  int quantization_byte = *nbit / 8;
+  double zero_line = pow(2.0, *nbit - 1);
+  double tmp, sign_bias;
+  unsigned char for_int_number[4];
+  for (int i = 0; i < *wav_length; ++i) {
+    sign_bias = tmp = 0.0;
+    fread(for_int_number, 1, quantization_byte, fp);  // "data"
+    if (for_int_number[quantization_byte-1] >= 128) {
+      sign_bias = pow(2.0, *nbit - 1);
+      for_int_number[quantization_byte - 1] =
+        for_int_number[quantization_byte - 1] & 0x7F;
+    }
+    for (int j = quantization_byte - 1; j >= 0; --j)
+      tmp = tmp * 256.0 + for_int_number[j];
+    waveform[i] = (tmp - sign_bias) / zero_line;
+  }
+  fclose(fp);
+  return waveform;
+}
+
+
+//-----------------------------------------------------------------------------
 // Test program.
 // test.exe input.wav outout.wav f0 spec flag
 // input.wav  : argv[1] Input file
@@ -214,7 +340,10 @@ int main(int argc, char *argv[]) {
   
 
   // FFT size for CheapTrick
-  int fft_size = GetFFTSizeForCheapTrick(fs);
+  CheapTrickOption option = {0};
+  InitializeCheapTrickOption(&option);
+  int fft_size = GetFFTSizeForCheapTrick(fs,&option);
+  
   double **spectrogram = new double *[f0_length];
   double **aperiodicity = new double *[f0_length];
   float **mel_cepstrum1 = new float*[f0_length];
