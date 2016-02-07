@@ -41,7 +41,7 @@ typedef struct
 
 } EprResonance;
 
-int EprVocalTractEstimate(double* spectrogram,int fft_size,int fs,double f0,EprSourceParams* params,double* tmp,EprResonance* res, int nres);
+int EprVocalTractEstimate(double* spectrogram,int fft_size,int fs,double f0,EprSourceParams* params,double* residual,EprResonance* res, int nres);
 
 double EprResonanceAtFrequency(EprResonance* me,double f,int fs);
 void EprResonanceUpdate(EprResonance* me,int fs);

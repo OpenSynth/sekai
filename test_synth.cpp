@@ -15,25 +15,57 @@
 
 #include <sndfile.h>
 
+#include "common.h"
+#include "epr.h"
 
-#define printf(...)  {}
+typedef struct {
+	EprSourceParams src;
+	EprResonance* res;
+	int n_res;
+	double* residual;
+} EpRFrame;
+
+void EpRFrameAllocate(EpRFrame* frame,int n_res, int fft_size)
+{
+	frame->n_res=n_res;
+	frame->res=new EprResonance[n_res];
+	frame->residual=new double[fft_size/2+1];
+}
+
+void EpREstimate(EpRFrame* frame,double* spectrogram,int fft_size,int fs,double f0)
+{
+	EprSourceEstimate(spectrogram,fft_size,fs,f0,&frame->src);
+	EprVocalTractEstimate(spectrogram,fft_size,fs,f0,&frame->src,frame->residual,frame->res, frame->n_res);
+}
+
+void EpRDelta(EpRFrame* frameL,EpRFrame* frameR)
+{
+	return ;
+	//float matrix[20][20];
+	for(int i=0;i<20;i++)
+	{
+		for(int j=0;j<20;j++)
+			printf("EPR_DELTA: %i %i %f\n",i,j,fabs(frameL->res[i].f-frameR->res[j].f));
+	}
+}
+
 
 #define MAXPOINTS 8
 
 typedef struct {
-	float x[MAXPOINTS];
-	float y[MAXPOINTS];
-	float l;
-	float r;
-	int n_points;
-	int vvd_index;
+    float x[MAXPOINTS];
+    float y[MAXPOINTS];
+    float l;
+    float r;
+    int n_points;
+    int vvd_index;
 } segment_t;
 
 #define X_END(p) p.x[p.n_points-1]
 
 float segment_interp(float x,float a,float b,float factor)
 {
-	return factor*(a-x)/(a-b);
+    return factor*(a-x)/(a-b);
 }
 
 //timebase for concatenation of segments
@@ -61,30 +93,38 @@ double* _olaFrame;
 int _cepstrumLength;
 float _vvdPitch;
 
+///////////
+EpRFrame _currentEpR;
+EpRFrame _leftEpR;
+EpRFrame _rightEpR;
+
+
+
 void uncompressVVDFrame(double* spectrogram,double* aperiodicity)
 {
-		 float* tmp=_vvdData;
-         _vvdPitch = *tmp;
-         float* cepstrum1 = tmp+1;
-         float* cepstrum2 = cepstrum1+_cepstrumLength;
-         
-         //assert(frequencyFromNote(vvdPitch)<400);
-         //printf("uncompress %f\n",frequencyFromNote(vvdPitch));
+    float* tmp=_vvdData;
+    _vvdPitch = *tmp;
+    float* cepstrum1 = tmp+1;
+    float* cepstrum2 = cepstrum1+_cepstrumLength;
 
-         MFCCDecompress(&spectrogram,1,_fs,_fftSize,_cepstrumLength,&cepstrum1,false);
-         MFCCDecompress(&aperiodicity,1,_fs,_fftSize,_cepstrumLength,&cepstrum2,true);
+    //assert(frequencyFromNote(vvdPitch)<400);
+    //printf("uncompress %f\n",frequencyFromNote(vvdPitch));
+
+    MFCCDecompress(&spectrogram,1,_fs,_fftSize,_cepstrumLength,&cepstrum1,false);
+    MFCCDecompress(&aperiodicity,1,_fs,_fftSize,_cepstrumLength,&cepstrum2,true);
 }
 
 
 void update_concat_zone(segment_t* s)
 {
-	assert(X_END(s[0])==s[1].x[0]);
-	_mid=X_END(s[0]);
-	assert(X_END(s[0])-s[0].r>s[0].x[0]);
-	_left=X_END(s[0])-s[0].r;
-	assert(s[1].x[0]+s[1].l<X_END(s[1]));
-	_right=s[1].x[0]+s[1].l;
+    assert(X_END(s[0])==s[1].x[0]);
+    _mid=X_END(s[0]);
+    assert(X_END(s[0])-s[0].r>s[0].x[0]);
+    _left=X_END(s[0])-s[0].r;
+    assert(s[1].x[0]+s[1].l<X_END(s[1]));
+    _right=s[1].x[0]+s[1].l;
 }
+
 
 float interp_linear(float* x,float* y,int nx,float ref)
 {
@@ -105,193 +145,212 @@ float interp_linear(float* x,float* y,int nx,float ref)
 
 int main()
 {
-	//init vvd_reader
+    //init vvd_reader
 
-	VVDReader* vvd = new VVDReader();
-	vvd->addVVD("vvd/0.vvd");
-	vvd->addVVD("vvd/1.vvd");
-	vvd->addVVD("vvd/2.vvd");
-	
-	_vvdData = new float[vvd->getFrameSize()/sizeof(float)];
-	_cepstrumLength = vvd->getCepstrumLength();
-	_fs =vvd->getSamplerate();
-	CheapTrickOption option;
-	InitializeCheapTrickOption(&option);
+    VVDReader* vvd = new VVDReader();
+    vvd->addVVD("vvd/0.vvd");
+    vvd->addVVD("vvd/1.vvd");
+    vvd->addVVD("vvd/2.vvd");
+
+    _vvdData = new float[vvd->getFrameSize()/sizeof(float)];
+    _cepstrumLength = vvd->getCepstrumLength();
+    _fs =vvd->getSamplerate();
+    CheapTrickOption option;
+    InitializeCheapTrickOption(&option);
     _fftSize = GetFFTSizeForCheapTrick(_fs,&option);
-    printf("fft_size %i\n",_fftSize);
-   	_spectrogram = new double[_fftSize/2+1];
-	_aperiodicity = new double[_fftSize/2+1];
-	InitializeInverseRealFFT(_fftSize, &_inverse_real_fft);
-	InitializeForwardRealFFT(_fftSize, &_forward_real_fft);
-	InitializeMinimumPhaseAnalysis(_fftSize, &_minimum_phase);
+    _spectrogram = new double[_fftSize/2+1];
+    _aperiodicity = new double[_fftSize/2+1];
+    InitializeInverseRealFFT(_fftSize, &_inverse_real_fft);
+    InitializeForwardRealFFT(_fftSize, &_forward_real_fft);
+    InitializeMinimumPhaseAnalysis(_fftSize, &_minimum_phase);
     _periodicResponse = new double[_fftSize];
     _aperiodicResponse = new double[_fftSize];
     _response = new double[_fftSize];
-	
-	//setup test segment list
-
-	int s_count=3;
-	segment_t s[s_count];
-
-	s[0].x[0]=0.0;  s[0].y[0]=0.2;
-	s[0].x[1]=1.0;	s[0].y[1]=0.8;
-	s[0].n_points = 2;
-	s[0].r=0.2;
-	s[0].vvd_index=0;
-
-	s[1].x[0]=1.0;  s[1].y[0]=0.2;
-	s[1].x[1]=2.0;	s[1].y[1]=0.8;
-	s[1].n_points = 2;
-	s[1].l=0.1;
-	s[1].r=0.2;
-	s[1].vvd_index=1;
-
-	s[2].x[0]=2.0;	s[2].y[0]=0.2;
-	s[2].x[1]=3.0;	s[2].y[1]=0.8;
-	s[2].n_points = 2;
-	s[2].l=0.2;
-	s[2].vvd_index=2;
-	
-	double signal_length = X_END(s[s_count-1]);
-	int signal_length_samples = _fs*signal_length+2*_fftSize;
-	double* signal = new double[signal_length_samples];
-	
-	int _lastIDX=-1;
-	
-	update_concat_zone(s);
-
-	SNDFILE* debugfile;
-	{
-	SF_INFO info = {0};
-	info.samplerate = _fs;
-	info.channels = 1;
-	info.format = SF_FORMAT_WAV|SF_FORMAT_PCM_16;
-	debugfile=sf_open("debug_synth.wav",SFM_WRITE,&info);
-	}
-	
-	while(1)
-	{
-		if(_currentIndex>s_count-1) 
-		{
-			printf("END OF FILE\n");
-			break; 
-		}
-		
-		double y_pos = interp_linear(s[_currentIndex].x,s[_currentIndex].y,s[_currentIndex].n_points,_currentPos);
-		printf("VVD: %i at %f\n",s[_currentIndex].vvd_index,y_pos);
-		
-		//get impulse response
-		
-		int idx= s[_currentIndex].vvd_index;
-		
-		if(idx!=_lastIDX) {
-			vvd->selectVVD(idx);
-			printf("segment changed %i\n",idx);
-			_lastIDX=idx;
-		}
-		float framePeriod = vvd->getFramePeriod();
-		float fractionalIndex=y_pos*1000.0/framePeriod;
-		printf("fractIndex: %f\n",fractionalIndex);
-		
-		if(vvd->getSegment(fractionalIndex,_vvdData)==false)
-		{
-			printf("PANIC: cannot read from VVD\n");
-			exit(1);
-		}
-		
-		uncompressVVDFrame(_spectrogram,_aperiodicity);
-		
-		if(_vvdPitch>400)
-		{
-		printf("invalid VVD %f\n",_vvdPitch);
-		for(int i=0;i<_fftSize/2+1;i++)
-		{
-			printf("VVD: %i %f %f\n",i,_spectrogram[i],_aperiodicity[i]);
-		}
-		}
-		
-		
-		float f0=200;
-		int noise_size = ((float)_fs)/f0;
-		printf("noise_size %i\n",noise_size);
-		double current_vuv=1.0; //only vowels
-		
-		
-	SynthesisOneImpulseResponse(
-	_fftSize,
-	noise_size,
-	current_vuv,
-	_spectrogram,
-	_aperiodicity,
-	&_forward_real_fft,
-    &_inverse_real_fft,
-    &_minimum_phase,
-    _periodicResponse,
-    _aperiodicResponse,
-    _response);
     
-    sf_write_double(debugfile,_response,_fftSize);
-    
-    int samplePos = _currentPos*_fs;
-    printf("sample pos %i\n",samplePos);
-    for(int i=0;i<_fftSize;i++)
+    EpRFrameAllocate(&_currentEpR,20,_fftSize);
+    EpRFrameAllocate(&_leftEpR,20,_fftSize);
+    EpRFrameAllocate(&_rightEpR,20,_fftSize);
+
+    //setup test segment list
+
+    int s_count=3;
+    segment_t s[s_count];
+
+    s[0].x[0]=0.0;  s[0].y[0]=0.2;
+    s[0].x[1]=1.0;	s[0].y[1]=0.8;
+    s[0].n_points = 2;
+    s[0].r=0.2;
+    s[0].vvd_index=0;
+
+    s[1].x[0]=1.0;  s[1].y[0]=0.2;
+    s[1].x[1]=2.0;	s[1].y[1]=0.8;
+    s[1].n_points = 2;
+    s[1].l=0.1;
+    s[1].r=0.2;
+    s[1].vvd_index=1;
+
+    s[2].x[0]=2.0;	s[2].y[0]=0.2;
+    s[2].x[1]=3.0;	s[2].y[1]=0.8;
+    s[2].n_points = 2;
+    s[2].l=0.2;
+    s[2].vvd_index=2;
+
+    double signal_length = X_END(s[s_count-1]);
+    int signal_length_samples = _fs*signal_length+2*_fftSize;
+    double* signal = new double[signal_length_samples];
+
+    update_concat_zone(s);
+
+    while(1)
     {
-		int index = i+samplePos;
-		assert(index<signal_length_samples);
-		signal[index]+=_response[i];
-	}
-		
-		
-		//TODO: synthesis
-		double period = 1.0/f0;
-		_currentPos+=period; //period
-		
-		
-		if(_currentPos>=_left && _concat==false && _lastConcat==false)
-		{
-			 printf("START CONCAT %f %f %f\n",_left,_mid,_right);
-			 
-			 double y_left  = interp_linear(s[_currentIndex].x,s[_currentIndex].y,s[_currentIndex].n_points,_mid);
-			 double y_right = interp_linear(s[_currentIndex+1].x,s[_currentIndex+1].y,s[_currentIndex+1].n_points,_mid);
-			 
-			 printf("MAPPED SEGMENTS %f %f\n",y_left,y_right);
-			 
-			 _concat=true;
-		}
+        if(_currentIndex>s_count-1)
+        {
+            printf("END OF FILE\n");
+            break;
+        }
+        float f0=200;
 
-		if(_concat && _currentPos<_mid)
-			printf("L %f: %f ss_interp=%f\n",_currentPos,segment_interp(_currentPos,_left,_mid,-0.5),segment_interp(_currentPos,_left,_mid,1.0));
-		if(_concat && _currentPos>=_mid)
-			printf("R %f: %f\n",_currentPos,segment_interp(_currentPos,_right,_mid,+0.5));
+        double y_pos = interp_linear(s[_currentIndex].x,s[_currentIndex].y,s[_currentIndex].n_points,_currentPos);
 
-		if(_concat==true && _currentPos>=_right)
-		{
-			_concat=false;
-			printf("END CONCAT %i\n",_currentIndex);
-			if(_currentIndex<s_count-1)
-				update_concat_zone(&s[_currentIndex]);
-			else
-				_lastConcat=true;
-		}
-		
-		double currentEnd=X_END(s[_currentIndex]);
-		if(_currentPos>currentEnd) {
-			_currentIndex++;
-		}
+        int idx= s[_currentIndex].vvd_index;
+        vvd->selectVVD(idx);
+
+        float framePeriod = vvd->getFramePeriod();
+        /////////
+        float fractionalIndex=y_pos*1000.0/framePeriod;
+
+        if(vvd->getSegment(fractionalIndex,_vvdData)==false)
+        {
+            printf("PANIC: cannot read from VVD\n");
+            exit(1);
+        }
+
+        uncompressVVDFrame(_spectrogram,_aperiodicity);
+        
+        if(_currentPos>=_left && _concat==false && _lastConcat==false)
+        {
+            printf("START CONCAT %f %f %f\n",_left,_mid,_right);
+
+            double y_left  = interp_linear(s[_currentIndex].x,s[_currentIndex].y,s[_currentIndex].n_points,_mid);
+            double y_right = interp_linear(s[_currentIndex+1].x,s[_currentIndex+1].y,s[_currentIndex+1].n_points,_mid);
+            float fractionalIndex_left=y_left*1000.0/framePeriod;
+            float fractionalIndex_right=y_right*1000.0/framePeriod;
+            
+            #if 0
+			vvd->selectVVD(s[_currentIndex].vvd_index);
+            if(vvd->getSegment(fractionalIndex_left,_vvdData)==false)
+			{
+				printf("PANIC: cannot read from VVD [L]\n");
+				exit(1);
+			}
+			uncompressVVDFrame(_spectrogram,_aperiodicity);
+			EpREstimate(&_leftEpR,_spectrogram,_fftSize,_fs,f0);
+			
+			vvd->selectVVD(s[_currentIndex+1].vvd_index);
+			if(vvd->getSegment(fractionalIndex_right,_vvdData)==false)
+			{
+				printf("PANIC: cannot read from VVD [R]\n");
+				exit(1);
+			}
+			uncompressVVDFrame(_spectrogram,_aperiodicity);
+			EpREstimate(&_rightEpR,_spectrogram,_fftSize,_fs,f0);
+			
+			printf("L SRC: %f %f %f\n",_leftEpR.src.gaindb,_leftEpR.src.slope,_leftEpR.src.slopedepthdb);
+			printf("R SRC: %f %f %f\n",_rightEpR.src.gaindb,_rightEpR.src.slope,_rightEpR.src.slopedepthdb);
+			
+			for(int i=0;i<20;i++)
+			{
+					printf("RES[%i]: %f %f %f | %f %f %f \n",i,_leftEpR.res[i].f,_leftEpR.res[i].bw,_leftEpR.res[i].gain_db,
+															   _rightEpR.res[i].f,_rightEpR.res[i].bw,_rightEpR.res[i].gain_db);
+			}
+			EpRDelta(&_leftEpR,&_rightEpR);
+			#endif
+            
+            _concat=true;
+        }
+        
+        if(_concat)
+        {
+				EpREstimate(&_currentEpR,_spectrogram,_fftSize,_fs,f0);
+				
+				for(int i=0;i<_fftSize/2+1;i++)
+				{
+					double frq = i*1.0*_fs/_fftSize;
+					double dB = EprAtFrequency(&_currentEpR.src,frq,_fs,_currentEpR.res, _currentEpR.n_res);
+					dB-=10;
+					double dbOrig = TWENTY_OVER_LOG10 * log(_spectrogram[i]);
+					//dB+=_currentEpR.residual[i];
+					_spectrogram[i] = exp(dB/TWENTY_OVER_LOG10);
 					
-	}
-	
-	//write signal to sndfile
+				}
+		}
 
-	SF_INFO info = {0};
-	info.samplerate = _fs;
-	info.channels = 1;
-	info.format = SF_FORMAT_WAV|SF_FORMAT_PCM_16;
-	SNDFILE* sf=sf_open("test_synth.wav",SFM_WRITE,&info);
-	sf_write_double(sf,signal,signal_length_samples);
-	sf_close(sf);
-	
-	sf_close(debugfile);
+        /*if(_concat && _currentPos<_mid)
+            printf("L %f: %f ss_interp=%f\n",_currentPos,segment_interp(_currentPos,_left,_mid,-0.5),segment_interp(_currentPos,_left,_mid,1.0));
+        if(_concat && _currentPos>=_mid)
+            printf("R %f: %f\n",_currentPos,segment_interp(_currentPos,_right,_mid,+0.5));*/
+
+        if(_concat==true && _currentPos>=_right)
+        {
+            _concat=false;
+            printf("END CONCAT %i\n",_currentIndex);
+            if(_currentIndex<s_count-1)
+                update_concat_zone(&s[_currentIndex]);
+            else
+                _lastConcat=true;
+        }
+
+        
+        int noise_size = ((float)_fs)/f0;
+        double current_vuv=1.0; //only vowels
+
+        SynthesisOneImpulseResponse(
+                    _fftSize,
+                    noise_size,
+                    current_vuv,
+                    _spectrogram,
+                    _aperiodicity,
+                    &_forward_real_fft,
+                    &_inverse_real_fft,
+                    &_minimum_phase,
+                    _periodicResponse,
+                    _aperiodicResponse,
+                    _response);
+
+        int samplePos = _currentPos*_fs;
+        for(int i=0;i<_fftSize;i++)
+        {
+            int index = i+samplePos;
+            assert(index<signal_length_samples);
+            signal[index]+=_response[i]*0.8;
+        }
+        
+       
+
+
+        //TODO: synthesis
+        double period = 1.0/f0;
+        _currentPos+=period; //period
+
+
+        
+
+        double currentEnd=X_END(s[_currentIndex]);
+        if(_currentPos>currentEnd) {
+            _currentIndex++;
+        }
+
+    }
+
+    //write signal to sndfile
+
+    SF_INFO info = {0};
+    info.samplerate = _fs;
+    info.channels = 1;
+    info.format = SF_FORMAT_WAV|SF_FORMAT_PCM_16;
+    SNDFILE* sf=sf_open("test_synth.wav",SFM_WRITE,&info);
+    sf_write_double(sf,signal,signal_length_samples);
+    sf_close(sf);
 
 
 }

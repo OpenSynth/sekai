@@ -35,7 +35,7 @@ struct common_data
 
 ////FIX DONE
 
-VVDReader::VVDReader() : vvdconfig(NULL), selectedFile(NULL), selectedIndex(0), data_ceil(NULL), data_floor(NULL)
+VVDReader::VVDReader() : vvdconfig(NULL), selectedFile(NULL), selectedIndex(-1), data_ceil(NULL), data_floor(NULL)
 {
     //ctor
 }
@@ -89,6 +89,7 @@ bool VVDReader::addVVD(const std::string& fileName)
 
 bool VVDReader::selectVVD(int index)
 {
+	if(selectedIndex == index) return true;
     if(selectedFile) fclose(selectedFile);
     if(index>files.size()) return false;
     selectedIndex = index;
