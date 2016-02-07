@@ -38,16 +38,24 @@ void EpREstimate(EpRFrame* frame,double* spectrogram,int fft_size,int fs,double 
 	EprVocalTractEstimate(spectrogram,fft_size,fs,f0,&frame->src,frame->residual,frame->res, frame->n_res);
 }
 
-void EpRDelta(EpRFrame* frameL,EpRFrame* frameR)
+int EpRFindIndex(double f,EpRFrame* frame,int max)
 {
-	return ;
-	//float matrix[20][20];
+	double min=22*1000;
+	int index=-1;
 	for(int i=0;i<20;i++)
 	{
-		for(int j=0;j<20;j++)
-			printf("EPR_DELTA: %i %i %f\n",i,j,fabs(frameL->res[i].f-frameR->res[j].f));
+		double delta = fabs(f-frame->res[i].f);
+		if(delta<min)
+		{
+			min=delta;
+			index=i;
+		}
 	}
+	if(min>max) index=-1;
+	//printf("MIN: %f INDEX: %i\n",min,index);
+	return index;
 }
+
 
 
 #define MAXPOINTS 8
@@ -97,8 +105,6 @@ float _vvdPitch;
 EpRFrame _currentEpR;
 EpRFrame _leftEpR;
 EpRFrame _rightEpR;
-
-
 
 void uncompressVVDFrame(double* spectrogram,double* aperiodicity)
 {
@@ -177,20 +183,20 @@ int main()
     segment_t s[s_count];
 
     s[0].x[0]=0.0;  s[0].y[0]=0.2;
-    s[0].x[1]=1.0;	s[0].y[1]=0.8;
+    s[0].x[1]=1.3;	s[0].y[1]=0.8;
     s[0].n_points = 2;
     s[0].r=0.2;
     s[0].vvd_index=0;
 
-    s[1].x[0]=1.0;  s[1].y[0]=0.2;
-    s[1].x[1]=2.0;	s[1].y[1]=0.8;
+    s[1].x[0]=1.3;  s[1].y[0]=0.2;
+    s[1].x[1]=2.7;	s[1].y[1]=0.8;
     s[1].n_points = 2;
     s[1].l=0.1;
     s[1].r=0.2;
     s[1].vvd_index=1;
 
-    s[2].x[0]=2.0;	s[2].y[0]=0.2;
-    s[2].x[1]=3.0;	s[2].y[1]=0.8;
+    s[2].x[0]=2.7;	s[2].y[0]=0.2;
+    s[2].x[1]=3.9;	s[2].y[1]=0.8;
     s[2].n_points = 2;
     s[2].l=0.2;
     s[2].vvd_index=2;
@@ -236,7 +242,6 @@ int main()
             float fractionalIndex_left=y_left*1000.0/framePeriod;
             float fractionalIndex_right=y_right*1000.0/framePeriod;
             
-            #if 0
 			vvd->selectVVD(s[_currentIndex].vvd_index);
             if(vvd->getSegment(fractionalIndex_left,_vvdData)==false)
 			{
@@ -255,40 +260,82 @@ int main()
 			uncompressVVDFrame(_spectrogram,_aperiodicity);
 			EpREstimate(&_rightEpR,_spectrogram,_fftSize,_fs,f0);
 			
-			printf("L SRC: %f %f %f\n",_leftEpR.src.gaindb,_leftEpR.src.slope,_leftEpR.src.slopedepthdb);
-			printf("R SRC: %f %f %f\n",_rightEpR.src.gaindb,_rightEpR.src.slope,_rightEpR.src.slopedepthdb);
+			///printf("L SRC: %f %f %f\n",_leftEpR.src.gaindb,_leftEpR.src.slope,_leftEpR.src.slopedepthdb);
+			///printf("R SRC: %f %f %f\n",_rightEpR.src.gaindb,_rightEpR.src.slope,_rightEpR.src.slopedepthdb);
 			
 			for(int i=0;i<20;i++)
 			{
-					printf("RES[%i]: %f %f %f | %f %f %f \n",i,_leftEpR.res[i].f,_leftEpR.res[i].bw,_leftEpR.res[i].gain_db,
-															   _rightEpR.res[i].f,_rightEpR.res[i].bw,_rightEpR.res[i].gain_db);
+					//printf("RES[%i]: %f %f %f | %f %f %f \n",i,_leftEpR.res[i].f,_leftEpR.res[i].bw,_leftEpR.res[i].gain_db,
+					//										   _rightEpR.res[i].f,_rightEpR.res[i].bw,_rightEpR.res[i].gain_db);
 			}
-			EpRDelta(&_leftEpR,&_rightEpR);
-			#endif
+			//printf("-----------------------------\n");
             
             _concat=true;
         }
         
-        if(_concat)
+        if(1) if(_concat)
         {
 				EpREstimate(&_currentEpR,_spectrogram,_fftSize,_fs,f0);
+				
+				double factor;
+				char side;
+				if(_currentPos<_mid)
+				{
+					side='L';
+					factor = segment_interp(_currentPos,_left,_mid,-0.5);
+				}
+				else
+				{
+					side='R';
+					factor = segment_interp(_currentPos,_right,_mid,+0.5);
+				}
+					
+				#define CORR(X) _currentEpR.src.X+=factor*(_leftEpR.src.X-_rightEpR.src.X);
+				CORR(slope)
+				CORR(slopedepthdb)
+				CORR(gaindb)
+				//printf("C SRC: %f %f %f [%c]\n",_currentEpR.src.gaindb,_currentEpR.src.slope,_currentEpR.src.slopedepthdb,side);
+				#undef CORR
+					
+				
+				for(int i=0;i<20;i++)
+				{
+					if(_currentEpR.res[i].f>0){
+						 int l = EpRFindIndex(_currentEpR.res[i].f,&_leftEpR,75);
+						 int r = EpRFindIndex(_currentEpR.res[i].f,&_rightEpR,75);
+						 double lfrq=0;
+						 double rfrq=0;
+						 if(l>=0) lfrq = _leftEpR.res[l].f;
+						 if(r>=0) rfrq = _rightEpR.res[r].f;
+						 
+						 
+						 if(l>-1 && r>-1)
+						 {
+							 //printf("EpR change: %f %f\n",_currentEpR.res[i].f,factor);
+							 #define CORR(X) _currentEpR.res[i].X+=factor*(_leftEpR.res[l].X-_rightEpR.res[r].X);
+							 CORR(gain_db);
+							 CORR(f);
+							 CORR(bw);
+							 #undef CORR
+							 //printf("RES[%i]: %f %f %f [L=%i(%f) R=%i(%f)] CORR\n",i,_currentEpR.res[i].f,_currentEpR.res[i].bw,_currentEpR.res[i].gain_db,l,lfrq,r,rfrq);
+							 EprResonanceUpdate(&_currentEpR.res[i],_fs);
+						 } 
+						 
+						 
+					 }
+				}
+				
 				
 				for(int i=0;i<_fftSize/2+1;i++)
 				{
 					double frq = i*1.0*_fs/_fftSize;
 					double dB = EprAtFrequency(&_currentEpR.src,frq,_fs,_currentEpR.res, _currentEpR.n_res);
-					dB-=10;
-					double dbOrig = TWENTY_OVER_LOG10 * log(_spectrogram[i]);
-					//dB+=_currentEpR.residual[i];
+					//dB-=10;
+					dB+=_currentEpR.residual[i];
 					_spectrogram[i] = exp(dB/TWENTY_OVER_LOG10);
-					
 				}
+				
 		}
-
-        /*if(_concat && _currentPos<_mid)
-            printf("L %f: %f ss_interp=%f\n",_currentPos,segment_interp(_currentPos,_left,_mid,-0.5),segment_interp(_currentPos,_left,_mid,1.0));
-        if(_concat && _currentPos>=_mid)
-            printf("R %f: %f\n",_currentPos,segment_interp(_currentPos,_right,_mid,+0.5));*/
 
         if(_concat==true && _currentPos>=_right)
         {
@@ -322,7 +369,7 @@ int main()
         {
             int index = i+samplePos;
             assert(index<signal_length_samples);
-            signal[index]+=_response[i]*0.8;
+				signal[index]+=_response[i]*0.5;
         }
         
        
