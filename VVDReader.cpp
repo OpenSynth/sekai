@@ -4,6 +4,9 @@
 #include <math.h>
 #include <world/common.h>
 
+
+#define printf(...)  XXXXXXX
+
 //FIXME
 struct vvd_header
 {
@@ -55,7 +58,6 @@ bool VVDReader::addVVD(const std::string& fileName)
             {
                 vvdconfig = (struct common_data*) new char[COMMON_SIZE];
                 memcpy(vvdconfig,&header.fs,COMMON_SIZE);
-                printf("cepstrum_length %i\n",vvdconfig->cepstrum_length);
                 int frameSize = 1+2*vvdconfig->cepstrum_length;
                 data_floor = new float[frameSize];
                 data_ceil  = new float[frameSize];
@@ -68,7 +70,7 @@ bool VVDReader::addVVD(const std::string& fileName)
                     return false;
                 }
             }
-            printf("add vvd file %s len: %i\n",fileName.c_str(),header.f0_length);
+            fprintf(stderr,"add vvd file %s len: %i\n",fileName.c_str(),header.f0_length);
             fileInfo info;
             info.length=header.f0_length;
             info.fileName=fileName;
@@ -105,8 +107,8 @@ bool VVDReader::getSegment(int index,void* data)
 {
     if(selectedFile==NULL) return false;
     int frame_size = getFrameSize();
-    if(index>=files[index].length)
-    fseek(selectedFile,sizeof(struct vvd_header)+index*frame_size,SEEK_SET);
+    if(index>=files[selectedIndex].length) return false;
+    if(fseek(selectedFile,sizeof(struct vvd_header)+index*frame_size,SEEK_SET)!=0) return false;
     int result = fread (data,1,frame_size,selectedFile);
     if(result==frame_size) return true;
     return false;
@@ -118,16 +120,20 @@ bool VVDReader::getSegment(float fractionalIndex,void* data)
     int frame_floor = MyMinInt(f0_length - 1, static_cast<int>(floor(fractionalIndex)));
     int frame_ceil = MyMinInt(f0_length - 1, static_cast<int>(ceil(fractionalIndex)));
     double interpolation = fractionalIndex - frame_floor;
+    
+    
 
     if (frame_floor == frame_ceil) {
-            return getSegment(frame_floor,data);
+            bool b = getSegment(frame_floor,data);
+            float* chunk=(float*) data;
+            if(chunk[0]>100) fprintf(stderr,"error reading frame %f\n",chunk[0]);
+            return b;
   } else {
         bool b1=getSegment(frame_floor,data_floor);
         if(b1==false) return false;
         bool b2=getSegment(frame_ceil,data_ceil);
         if(b2==false) return false;
         float* data_ret = (float*)data;
-        printf("floor: %i ceil: %i\n",frame_floor,frame_ceil);
         for(int i=0;i<2*vvdconfig->cepstrum_length+1;i++)
         {
             data_ret[i] = (1.0 - interpolation) * data_floor[i] + interpolation * data_ceil[i];
