@@ -18,6 +18,7 @@
 #include "common.h"
 #include "epr.h"
 
+#ifdef USE_EPR
 typedef struct {
 	EprSourceParams src;
 	EprResonance* res;
@@ -55,6 +56,7 @@ int EpRFindIndex(double f,EpRFrame* frame,int max)
 	//printf("MIN: %f INDEX: %i\n",min,index);
 	return index;
 }
+#endif
 
 
 
@@ -73,7 +75,10 @@ typedef struct {
 
 float segment_interp(float x,float a,float b,float factor)
 {
-    return factor*(a-x)/(a-b);
+	assert(x>=a);
+	assert(b>=x);
+	float right = b-x;
+    return factor*(x-a)/(b-a);
 }
 
 //timebase for concatenation of segments
@@ -93,7 +98,9 @@ float* _vvdData=NULL;
 int _fs=44100;
 int _fftSize=0;
 double* _spectrogram;
-double* _aperiodicity;   
+double* _aperiodicity;  
+double* _rightSpectrogram;
+double* _rightAperiodicity;    
 double* _periodicResponse;
 double* _aperiodicResponse;
 double* _response;
@@ -102,9 +109,11 @@ int _cepstrumLength;
 float _vvdPitch;
 
 ///////////
+#ifdef USE_EPR
 EpRFrame _currentEpR;
 EpRFrame _leftEpR;
 EpRFrame _rightEpR;
+#endif
 
 void uncompressVVDFrame(double* spectrogram,double* aperiodicity)
 {
@@ -166,6 +175,8 @@ int main()
     _fftSize = GetFFTSizeForCheapTrick(_fs,&option);
     _spectrogram = new double[_fftSize/2+1];
     _aperiodicity = new double[_fftSize/2+1];
+    _rightSpectrogram = new double[_fftSize/2+1];
+    _rightAperiodicity = new double[_fftSize/2+1];
     InitializeInverseRealFFT(_fftSize, &_inverse_real_fft);
     InitializeForwardRealFFT(_fftSize, &_forward_real_fft);
     InitializeMinimumPhaseAnalysis(_fftSize, &_minimum_phase);
@@ -173,9 +184,11 @@ int main()
     _aperiodicResponse = new double[_fftSize];
     _response = new double[_fftSize];
     
+    #ifdef USE_EPR
     EpRFrameAllocate(&_currentEpR,20,_fftSize);
     EpRFrameAllocate(&_leftEpR,20,_fftSize);
     EpRFrameAllocate(&_rightEpR,20,_fftSize);
+    #endif
 
     //setup test segment list
 
@@ -248,8 +261,11 @@ int main()
 				printf("PANIC: cannot read from VVD [L]\n");
 				exit(1);
 			}
-			uncompressVVDFrame(_spectrogram,_aperiodicity);
+			
+			#ifdef USE_EPR
+			uncompressVVDFrame(_TODOspectrogram,_TODOaperiodicity);
 			EpREstimate(&_leftEpR,_spectrogram,_fftSize,_fs,f0);
+			#endif
 			
 			vvd->selectVVD(s[_currentIndex+1].vvd_index);
 			if(vvd->getSegment(fractionalIndex_right,_vvdData)==false)
@@ -257,12 +273,11 @@ int main()
 				printf("PANIC: cannot read from VVD [R]\n");
 				exit(1);
 			}
-			uncompressVVDFrame(_spectrogram,_aperiodicity);
+			uncompressVVDFrame(_rightSpectrogram,_rightAperiodicity);
+			#ifdef USE_EPR
 			EpREstimate(&_rightEpR,_spectrogram,_fftSize,_fs,f0);
-			
-			///printf("L SRC: %f %f %f\n",_leftEpR.src.gaindb,_leftEpR.src.slope,_leftEpR.src.slopedepthdb);
-			///printf("R SRC: %f %f %f\n",_rightEpR.src.gaindb,_rightEpR.src.slope,_rightEpR.src.slopedepthdb);
-			
+			#endif
+						
 			for(int i=0;i<20;i++)
 			{
 					//printf("RES[%i]: %f %f %f | %f %f %f \n",i,_leftEpR.res[i].f,_leftEpR.res[i].bw,_leftEpR.res[i].gain_db,
@@ -272,8 +287,24 @@ int main()
             
             _concat=true;
         }
-        
-        if(1) if(_concat)
+        #ifndef BETA
+        if(_concat)
+        {
+			if(_currentPos<_mid)
+			{
+					double factor;
+					factor = segment_interp(_currentPos,_left,_mid,1.0);
+					printf("%f\n",factor);
+					for(int i=0;i<_fftSize/2+1;i++)
+					{
+						_spectrogram[i] = _spectrogram[i] * (1-factor) + _rightSpectrogram[i] * factor;
+						_aperiodicity[i] = _aperiodicity[i] * (1-factor) + _rightAperiodicity[i] * factor;
+					}
+			}
+		}
+		#endif
+        #ifdef USE_EPR
+        if(_concat)
         {
 				EpREstimate(&_currentEpR,_spectrogram,_fftSize,_fs,f0);
 				
@@ -336,6 +367,7 @@ int main()
 				}
 				
 		}
+		#endif
 
         if(_concat==true && _currentPos>=_right)
         {
