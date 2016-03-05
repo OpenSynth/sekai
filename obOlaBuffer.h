@@ -26,6 +26,7 @@ class obOlaBuffer {
     
     obOlaBuffer( int bufferLen );
     void ola( float *frame, int frameLen, int period );
+    void ola( double *frame, int frameLen, int period );
     void pop( float *buffer, int bufferLen );
     bool isFilled(int size);
     int currentTime();

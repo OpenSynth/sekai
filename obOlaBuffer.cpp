@@ -46,6 +46,22 @@ void obOlaBuffer::ola( float *frame, int frameLen, int period ) {
 
 }
 
+void obOlaBuffer::ola( double *frame, int frameLen, int period ) {
+
+  int m,k;
+
+  for( k=0; k<frameLen; k++ ) {
+    
+    m = (pos+((int)atLoc)+k)%length; // we cycle through OLA buffer indices
+    rawData[m] += frame[k]; // and add the current frame at location
+  }
+
+  atLoc+=period;      //buffer location
+  timeSamples+=period;//absolute time
+
+
+}
+
 bool obOlaBuffer::isFilled(int size)
 {
   return atLoc>size;
