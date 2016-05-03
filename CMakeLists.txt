@@ -1,19 +1,14 @@
-add_library(sekai SHARED epr.cpp hzosc.cpp  mfcc.cpp  midi.cpp obOlaBuffer.cpp common.h epr.h hzosc.h mfcc.h midi.h note.h obOlaBuffer.h vvd.h)
+add_library(sekai SHARED 
+	mfcc.cpp
+	midi.cpp)
 
 set(HEADERS 
-	common.h
-	epr.h
-	hzosc.h
-	mfcc.h
 	midi.h
-	note.h
-	obOlaBuffer.h
-	vvd.h
 )
 
 
 set(SEKAI_VERSION_MAJOR 0)
-set(SEKAI_VERSION_MINOR 2)
+set(SEKAI_VERSION_MINOR 3)
 set(SEKAI_VERSION_PATCH 0)
 set(SEKAI_VERSION_STRING ${SEKAI_VERSION_MAJOR}.${SEKAI_VERSION_MINOR}.${SEKAI_VERSION_PATCH})
 set_target_properties(sekai PROPERTIES VERSION ${SEKAI_VERSION_STRING}
