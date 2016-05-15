@@ -1,9 +1,13 @@
 add_library(sekai SHARED 
 	mfcc.cpp
-	midi.cpp)
+	midi.cpp
+	SekaiContext.cpp
+	VVDReader.cpp)
 
 set(HEADERS 
 	midi.h
+	mfcc.h
+	VVDReader.h
 )
 
 
@@ -24,3 +28,8 @@ install(TARGETS sekai
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib/${CMAKE_ARCH_TRIPLET}
 )
+
+add_executable(wav2vvd wav2vvd.cpp)
+add_executable(vvd2wav vvd2wav.cpp)
+target_link_libraries(vvd2wav sekai world sndfile)
+target_link_libraries(wav2vvd sekai world sndfile)
