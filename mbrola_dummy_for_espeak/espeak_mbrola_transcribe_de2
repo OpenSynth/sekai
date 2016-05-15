@@ -1,0 +1,2 @@
+#!/bin/bash
+espeak -v mb-de2 --pho "$1" 2> /tmp/mbrola_dummy_4_espeak.log 
