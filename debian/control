@@ -6,7 +6,7 @@ Standards-Version: 3.9.4
 Section: libs
 Homepage: https://notabug.org/isengaara/sekai
 
-Package: sekai-dev
+Package: libsekai-dev
 Section: libdevel
 Architecture: any
 Depends: libsekai0 (= ${binary:Version})
