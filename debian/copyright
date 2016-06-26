@@ -1,0 +1,8 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: sekai
+Source: <url://example.com>
+
+Files: *
+Copyright: 2016 Tobias Platen
+           2011-2014 HAL(shuraba-P)
+           2008 MUSIC TECHNOLOGY GROUP (MTG) UNIVERSITAT POMPEU FABRA
