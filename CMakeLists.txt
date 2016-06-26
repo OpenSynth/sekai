@@ -1,15 +1,15 @@
 add_library(sekai SHARED 
-	mfcc.cpp
-	midi.cpp
-	SekaiContext.cpp
-	VVDReader.cpp)
+	src/mfcc.cpp
+	src/midi.cpp
+	src/SekaiContext.cpp
+	src/VVDReader.cpp)
 
 set(HEADERS 
-	midi.h
-	mfcc.h
-	SekaiContext.h
-	VVDReader.h
-	vvd.h
+	src/sekai/midi.h
+	src/sekai/mfcc.h
+	src/sekai/SekaiContext.h
+	src/sekai/VVDReader.h
+	src/sekai/vvd.h
 )
 
 
@@ -19,7 +19,7 @@ set(SEKAI_VERSION_PATCH 0)
 set(SEKAI_VERSION_STRING ${SEKAI_VERSION_MAJOR}.${SEKAI_VERSION_MINOR}.${SEKAI_VERSION_PATCH})
 set_target_properties(sekai PROPERTIES VERSION ${SEKAI_VERSION_STRING}
                                            SOVERSION ${SEKAI_VERSION_MAJOR})
-
+include_directories(src)
 
 install(FILES ${HEADERS} DESTINATION include/sekai)
 
@@ -31,7 +31,7 @@ install(TARGETS sekai
         LIBRARY DESTINATION lib/${CMAKE_ARCH_TRIPLET}
 )
 
-add_executable(wav2vvd wav2vvd.cpp)
-add_executable(vvd2wav vvd2wav.cpp)
+add_executable(wav2vvd src/wav2vvd.cpp)
+add_executable(vvd2wav src/vvd2wav.cpp)
 target_link_libraries(vvd2wav sekai world sndfile)
 target_link_libraries(wav2vvd sekai world sndfile)

@@ -20,7 +20,7 @@
 
 #include <math.h>
 #include "world/fft.h"
-#include "mfcc.h"
+#include "sekai/mfcc.h"
 
 #include "world/cheaptrick.h"
 #include "world/constantnumbers.h"

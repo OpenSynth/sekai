@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-#include "SekaiContext.h"
-#include "vvd.h"
+#include "sekai/SekaiContext.h"
+#include "sekai/vvd.h"
 #include "world/cheaptrick.h"
-#include "midi.h"
+#include "sekai/midi.h"
 #include "world/audioio.h"
 
 //-----------------------------------------------------------------------------
