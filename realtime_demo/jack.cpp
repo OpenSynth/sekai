@@ -33,9 +33,9 @@ Jack::Jack()
   std::cout << "Jack()" << std::flush;
   
   if ((client = jack_client_open("SampleMidiSynth", JackNullOption, NULL)) == 0)
-  {
-    std::cout << "jack server not running?" << std::endl;
-  }
+    {
+      std::cout << "jack server not running?" << std::endl;
+    }
   
   synth.init(jack_get_sample_rate(client),jack_get_buffer_size(client));
   bufferSize = jack_get_buffer_size(client);
@@ -67,10 +67,10 @@ void Jack::activate()
   std::cout << "activate()" << std::flush;
   
   if (jack_activate(client) != 0)
-  {
-    std::cout<<  "cannot activate client" << std::endl;
-    return;
-  }
+    {
+      std::cout<<  "cannot activate client" << std::endl;
+      return;
+    }
   std::cout << "\t\tDone!" << std::endl;
   
   jack_connect(client,"a2j:LPK25 [20] (capture): LPK25 MIDI 1","SampleMidiSynth:midi_in");
@@ -99,31 +99,31 @@ int Jack::process(jack_nframes_t nframes)
  
   jack_nframes_t event_count = jack_midi_get_event_count(inputPortBuf);
   if(event_count > 0)
-  {
-    for(int i=0; i<event_count; i++)
     {
-      jack_midi_event_get(&in_event, inputPortBuf, i);
+      for(int i=0; i<event_count; i++)
+	{
+	  jack_midi_event_get(&in_event, inputPortBuf, i);
                 
-      unsigned char event[4];
-      event[0]=0;       
-      event[1]=in_event.buffer[0];
-      event[2]=in_event.buffer[1];
-      event[3]=in_event.buffer[2];
-      if(jack_ringbuffer_write_space(inputBuffer)>4)
-      {
-		  jack_ringbuffer_write(inputBuffer,(char*)event,4);
-	  }        
+	  unsigned char event[4];
+	  event[0]=0;       
+	  event[1]=in_event.buffer[0];
+	  event[2]=in_event.buffer[1];
+	  event[3]=in_event.buffer[2];
+	  if(jack_ringbuffer_write_space(inputBuffer)>4)
+	    {
+	      jack_ringbuffer_write(inputBuffer,(char*)event,4);
+	    }        
                 
                    
-    }   
-  }
+	}   
+    }
   
   jack_default_audio_sample_t *out = (jack_default_audio_sample_t *) jack_port_get_buffer (outputPort, nframes);
   
   if(jack_ringbuffer_read_space(outputBuffer)>nframes*sizeof(float)*2)
-  {
-	  jack_ringbuffer_read(outputBuffer,(char*)out,nframes*sizeof(float));
-  }
+    {
+      jack_ringbuffer_read(outputBuffer,(char*)out,nframes*sizeof(float));
+    }
   
   
   
@@ -133,25 +133,25 @@ int Jack::process(jack_nframes_t nframes)
 
 void Jack::staticWorkerThread(Jack* self)
 {
-	fprintf(stderr,"worker thread - non realtime\n");
-	while(1)
-	{
-		if(jack_ringbuffer_read_space(self->inputBuffer)>=4) {
-			unsigned char event[4];
-			jack_ringbuffer_read(self->inputBuffer,(char*)event,4);
-			int sb=event[1];
-			int notenum = event[2];
-			int velocity = event[3];
+  fprintf(stderr,"worker thread - non realtime\n");
+  while(1)
+    {
+      if(jack_ringbuffer_read_space(self->inputBuffer)>=4) {
+	unsigned char event[4];
+	jack_ringbuffer_read(self->inputBuffer,(char*)event,4);
+	int sb=event[1];
+	int notenum = event[2];
+	int velocity = event[3];
 			
-			if(MIDI_STATUS(sb)==MIDI_NOTEOFF || (MIDI_STATUS(sb)==MIDI_NOTEON && velocity==0)) self->synth.noteOff(notenum);
-			else if(MIDI_STATUS(sb)==MIDI_NOTEON) self->synth.noteOn(notenum,velocity); 
-		}
-		if(jack_ringbuffer_write_space(self->outputBuffer)>=self->bufferSize*sizeof(float))
-		{
-			float buffer[self->bufferSize];
-			self->synth.fill(buffer,self->bufferSize);
-			jack_ringbuffer_write(self->outputBuffer,(char*)buffer,self->bufferSize*sizeof(float));
-		}
-		usleep(1000);
+	if(MIDI_STATUS(sb)==MIDI_NOTEOFF || (MIDI_STATUS(sb)==MIDI_NOTEON && velocity==0)) self->synth.noteOff(notenum);
+	else if(MIDI_STATUS(sb)==MIDI_NOTEON) self->synth.noteOn(notenum,velocity); 
+      }
+      if(jack_ringbuffer_write_space(self->outputBuffer)>=self->bufferSize*sizeof(float))
+	{
+	  float buffer[self->bufferSize];
+	  self->synth.fill(buffer,self->bufferSize);
+	  jack_ringbuffer_write(self->outputBuffer,(char*)buffer,self->bufferSize*sizeof(float));
 	}
+      usleep(1000);
+    }
 }

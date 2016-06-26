@@ -38,9 +38,9 @@ int main(int argc,char *argv[])
   jack.activate();
   
   for(;;)
-  {
-    sleep(1);
-  }
+    {
+      sleep(1);
+    }
   
   return 0;
 }

@@ -1,5 +1,6 @@
 /*
-    Copyright 2011 University of Mons
+	Sekai - addons for the WORLD speech toolkit
+    Copyright (C) 2016 Tobias Platen
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -13,34 +14,20 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+*/ 
 
-#pragma once
+#ifndef VVD_H_INCLUDED
+#define VVD_H_INCLUDED
 
-#include <cstdlib>
-#include <cstring>
-
-class obOlaBuffer {
-    
-  public:
-    
-    obOlaBuffer( int bufferLen );
-    void ola( float *frame, int frameLen, int period );
-    void ola( double *frame, int frameLen, int period );
-    void pop( float *buffer, int bufferLen );
-    bool isFilled(int size);
-    int currentTime();
-    
-  protected:
-    
-    float *rawData;
-    int length, pos;
-
-    int timeSamples;
-    int atLoc;
-
-    
-    
-   // int m, k, remain;
-   // int start, end;
+struct vvd_header
+{
+	int magic;
+	int version;
+	int f0_length;
+	int fs;//used to calculate FFT_SIZE
+	float frame_period;
+	int cepstrum_length;
+	int flags;
 };
+
+#endif

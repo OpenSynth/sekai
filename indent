@@ -1,4 +1,4 @@
-for f in *.cpp *.h
+for f in $(find . -name "*.cpp") $(find . -name "*.h")
 do
 	emacs -batch $f --eval '(indent-region (point-min) (point-max) nil)' -f save-buffer
 done

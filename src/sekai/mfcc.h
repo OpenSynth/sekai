@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Sekai.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #ifndef WORLD_MFCC_H_
 #define WORLD_MFCC_H_
 void MFCCCompress(double** spectrogram,int f0_length,int fs, int fft_size,int cepstrum_length,float** mel_cepstrum);

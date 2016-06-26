@@ -89,71 +89,71 @@ void EprSourceEstimate(double* spectrogram,int fft_size,int fs,double f0,EprSour
 
 inline int sgn(double x)
 {
-    if (x==0)
-        return 0;
-    else
-        return (x>0) ? 1 : -1;
+  if (x==0)
+    return 0;
+  else
+    return (x>0) ? 1 : -1;
 }
 
 int findMaxima(double *tmp,int fft_size,int fs,EprResonance* res, int nres)
 {
-    int sign=0;
-    int oldsign=0;
-    int i=0;
-    for(int j=2;j<fft_size/2-8;j++)
+  int sign=0;
+  int oldsign=0;
+  int i=0;
+  for(int j=2;j<fft_size/2-8;j++)
     {
-            sign = sgn(tmp[j]-tmp[j+1]);
-            if(sign!=oldsign) {
-                double a = tmp[j];
-                double f = j*fs/fft_size;
-                if(a>tmp[j-1] && a>tmp[j-2] && a>tmp[j+1] && a>tmp[j+2] && i < nres)
-                {
-                    res[i].gain_db=tmp[j-1]; // select correct bin
-                    res[i].f=f;
-                    i++;
-                }
-            }
+      sign = sgn(tmp[j]-tmp[j+1]);
+      if(sign!=oldsign) {
+	double a = tmp[j];
+	double f = j*fs/fft_size;
+	if(a>tmp[j-1] && a>tmp[j-2] && a>tmp[j+1] && a>tmp[j+2] && i < nres)
+	  {
+	    res[i].gain_db=tmp[j-1]; // select correct bin
+	    res[i].f=f;
+	    i++;
+	  }
+      }
     }
-    return i;
+  return i;
 }
 
 void getBandwidth(double *tmp,int fft_size,int fs,EprResonance* res)
 {
-    double freq = res->f;
-    double gain = res->gain_db;
-    int bin = freq*fft_size/fs;
-    //printf("bin %i\n",bin);
-    double freq_left=0;
-    double freq_right=0;
-    for(int i=0;i<40;i++)
+  double freq = res->f;
+  double gain = res->gain_db;
+  int bin = freq*fft_size/fs;
+  //printf("bin %i\n",bin);
+  double freq_left=0;
+  double freq_right=0;
+  for(int i=0;i<40;i++)
     {
-        int index = i+bin;
-        if(index>0 && index<fft_size/2-8)
+      int index = i+bin;
+      if(index>0 && index<fft_size/2-8)
         {
-            double freq2 = i*fs/fft_size;
-            double gaindrop = gain-tmp[index];
-            //printf("gaindrop R %f %f\n",freq2,gaindrop);
-            freq_right = freq2;
-            if(gaindrop>3) break;
+	  double freq2 = i*fs/fft_size;
+	  double gaindrop = gain-tmp[index];
+	  //printf("gaindrop R %f %f\n",freq2,gaindrop);
+	  freq_right = freq2;
+	  if(gaindrop>3) break;
         }
     }
-    for(int i=0;i<40;i++)
+  for(int i=0;i<40;i++)
     {
-        int index = bin-i;
-        if(index>0 && index<fft_size/2-8)
+      int index = bin-i;
+      if(index>0 && index<fft_size/2-8)
         {
-            double freq2 = i*fs/fft_size;
-            double gaindrop = gain-tmp[index];
-            //printf("gaindrop L %f %f\n",freq2,gaindrop);
-            if(gaindrop>3) break;
-            freq_left = freq2;
+	  double freq2 = i*fs/fft_size;
+	  double gaindrop = gain-tmp[index];
+	  //printf("gaindrop L %f %f\n",freq2,gaindrop);
+	  if(gaindrop>3) break;
+	  freq_left = freq2;
         }
     }
 
-    double bw = sqrt(freq_left*freq_right);
-    //FIXME one of both is zero: not found
-    res->bw = bw;
-    EprResonanceUpdate(res,fs);
+  double bw = sqrt(freq_left*freq_right);
+  //FIXME one of both is zero: not found
+  res->bw = bw;
+  EprResonanceUpdate(res,fs);
 
 
 }
@@ -167,22 +167,22 @@ int EprVocalTractEstimate(double* spectrogram,int fft_size,int fs,double f0,EprS
       double source  = params->gaindb + params->slopedepthdb * ( pow(M_E,params->slope*f)-1 );
       tmp[i] = spect-source;
     }
-    int count = findMaxima(tmp,fft_size,fs,res,nres);
-    for(int i=0;i<count;i++)
+  int count = findMaxima(tmp,fft_size,fs,res,nres);
+  for(int i=0;i<count;i++)
     {
-        getBandwidth(tmp,fft_size,fs,&res[i]);
+      getBandwidth(tmp,fft_size,fs,&res[i]);
     }
-    for(int i=0;i<count;i++)
+  for(int i=0;i<count;i++)
     {
-        EprResonanceUpdate(&res[i],fs);
+      EprResonanceUpdate(&res[i],fs);
     }
-    for(int i=0;i<fft_size/2+1;i++)
+  for(int i=0;i<fft_size/2+1;i++)
     {
-	double f = i*fs*1.0/fft_size;
-	double db = TWENTY_OVER_LOG10 * log(spectrogram[i]);
-	tmp[i] = db-EprAtFrequency(params,f,fs,res,nres);
+      double f = i*fs*1.0/fft_size;
+      double db = TWENTY_OVER_LOG10 * log(spectrogram[i]);
+      tmp[i] = db-EprAtFrequency(params,f,fs,res,nres);
     }
-    return count;
+  return count;
 
 }
 

@@ -1,3 +1,21 @@
+/*
+	Sekai - addons for the WORLD speech toolkit
+    Copyright (C) 2016 Tobias Platen
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/ 
+
 // Copyright 2012-2015 Masanori Morise. All Rights Reserved.
 // Author: mmorise [at] yamanashi.ac.jp (Masanori Morise)
 //
@@ -50,10 +68,10 @@
 #endif
 DWORD timeGetTime()
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    DWORD ret = static_cast<DWORD>(tv.tv_usec / 1000 + tv.tv_sec * 1000);
-    return ret;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  DWORD ret = static_cast<DWORD>(tv.tv_usec / 1000 + tv.tv_sec * 1000);
+  return ret;
 }
 #endif
 
@@ -69,8 +87,8 @@ const static double A4Note = 69.0;
 
 double frequencyFromNote(float note)
 {
-    if(note==0) return 0;
-    return pow(2.0, (note - A4Note) / 12.0) * A4Frequency;
+  if(note==0) return 0;
+  return pow(2.0, (note - A4Note) / 12.0) * A4Frequency;
 }
 
 
@@ -86,9 +104,9 @@ namespace
 
 
 
-void DeCap(int fs, double *f0,
-           int f0_length, double **spectrogram)
-{
+  void DeCap(int fs, double *f0,
+	     int f0_length, double **spectrogram)
+  {
     int fft_size = GetFFTSizeForCheapTrick(fs);
 
 
@@ -96,7 +114,7 @@ void DeCap(int fs, double *f0,
     double* tmp = new double[fft_size/2+1];
     EprResonance res[MAXRES];
     for(int i=0; i<f0_length; i++)
-    {
+      {
 
         EprSourceParams params;
         EprSourceEstimate(spectrogram[i],fft_size,fs,f0[i],&params);
@@ -104,18 +122,18 @@ void DeCap(int fs, double *f0,
         printf("gaindb %f slope %f slopedepthdb %f\n",params.gaindb,params.slope,params.slopedepthdb);
 
         for(int j=0;j<fft_size/2+1;j++)
-        {
+	  {
             double f = j*fs/fft_size;
             double db = EprAtFrequency(&params,f,fs,res,count);
             spectrogram[i][j] = exp(db / TWENTY_OVER_LOG10);
-        }
-    }
+	  }
+      }
 
-}
+  }
 
-void Decompress(double** spectrogram,double** aperiodicity,int f0_length,int fs, int fft_size,int cepstrum_length,
-                float** mel_cepstrum1,float** mel_cepstrum2)
-{
+  void Decompress(double** spectrogram,double** aperiodicity,int f0_length,int fs, int fft_size,int cepstrum_length,
+		  float** mel_cepstrum1,float** mel_cepstrum2)
+  {
     DWORD elapsed_time;
     // Synthesis by the aperiodicity
     printf("\nDecompress\n");
@@ -126,14 +144,14 @@ void Decompress(double** spectrogram,double** aperiodicity,int f0_length,int fs,
 
 
     printf("WORLD: %d [msec]\n", timeGetTime() - elapsed_time);
-}
+  }
 
 
 
-void WaveformSynthesis(double *f0, int f0_length, double **spectrogram,
-                       double **aperiodicity, int fft_size, double frame_period, int fs,
-                       int y_length, double *y)
-{
+  void WaveformSynthesis(double *f0, int f0_length, double **spectrogram,
+			 double **aperiodicity, int fft_size, double frame_period, int fs,
+			 int y_length, double *y)
+  {
     DWORD elapsed_time;
     // Synthesis by the aperiodicity
     printf("\nSynthesis\n");
@@ -141,7 +159,7 @@ void WaveformSynthesis(double *f0, int f0_length, double **spectrogram,
     Synthesis(f0, f0_length, spectrogram, aperiodicity,
               fft_size, FRAMEPERIOD, fs, y_length, y);
     printf("WORLD: %d [msec]\n", timeGetTime() - elapsed_time);
-}
+  }
 
 }  // namespace
 
@@ -155,82 +173,82 @@ void WaveformSynthesis(double *f0, int f0_length, double **spectrogram,
 //-----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
-    if (argc != 2 && argc != 3 && argc != 4 && argc != 5)
+  if (argc != 2 && argc != 3 && argc != 4 && argc != 5)
     {
-        printf("usage: world_test infile.wav outfile.wav [pitch] [formant]\n");
-        return 0;
+      printf("usage: world_test infile.wav outfile.wav [pitch] [formant]\n");
+      return 0;
     }
 
-    FILE* f = fopen(argv[1],"rb");
-    vvd_header hdr;
-    fread(&hdr,1,sizeof(hdr),f);
+  FILE* f = fopen(argv[1],"rb");
+  vvd_header hdr;
+  fread(&hdr,1,sizeof(hdr),f);
 
-    if(hdr.magic!=1430997325) return 0;
-    //ignore version (0)
-    int f0_length = hdr.f0_length;
-    double frame_period = hdr.frame_period;
-    int cepstrum_length = hdr.cepstrum_length;
-    int fs = hdr.fs;
-    int fft_size = GetFFTSizeForCheapTrick(fs);
-    //ignore flags
+  if(hdr.magic!=1430997325) return 0;
+  //ignore version (0)
+  int f0_length = hdr.f0_length;
+  double frame_period = hdr.frame_period;
+  int cepstrum_length = hdr.cepstrum_length;
+  int fs = hdr.fs;
+  int fft_size = GetFFTSizeForCheapTrick(fs);
+  //ignore flags
 
-    double *f0 = new double[f0_length];
-    double *time_axis = new double[f0_length];
-    float **mel_cepstrum1 = new float*[f0_length];
-    float **mel_cepstrum2 = new float*[f0_length];
+  double *f0 = new double[f0_length];
+  double *time_axis = new double[f0_length];
+  float **mel_cepstrum1 = new float*[f0_length];
+  float **mel_cepstrum2 = new float*[f0_length];
 
-    double **spectrogram = new double *[f0_length];
-    double **aperiodicity = new double *[f0_length];
-    for (int i = 0; i < f0_length; ++i)
+  double **spectrogram = new double *[f0_length];
+  double **aperiodicity = new double *[f0_length];
+  for (int i = 0; i < f0_length; ++i)
     {
-        spectrogram[i] = new double[fft_size / 2 + 1];
-        aperiodicity[i] = new double[fft_size / 2 + 1];
-        mel_cepstrum1[i] = new float[cepstrum_length];
-        mel_cepstrum2[i] = new float[cepstrum_length];
+      spectrogram[i] = new double[fft_size / 2 + 1];
+      aperiodicity[i] = new double[fft_size / 2 + 1];
+      mel_cepstrum1[i] = new float[cepstrum_length];
+      mel_cepstrum2[i] = new float[cepstrum_length];
     }
 
-    int chunksize = 1+cepstrum_length*2;
-    float* chunk = new float[chunksize];
+  int chunksize = 1+cepstrum_length*2;
+  float* chunk = new float[chunksize];
 
-    for(int j=0; j<f0_length; j++)
+  for(int j=0; j<f0_length; j++)
     {
-        fread(chunk,sizeof(float),chunksize,f);
-        f0[j] = frequencyFromNote(chunk[0]);
-        for(int i=0; i<cepstrum_length; i++)
+      fread(chunk,sizeof(float),chunksize,f);
+      f0[j] = frequencyFromNote(chunk[0]);
+      for(int i=0; i<cepstrum_length; i++)
         {
-            mel_cepstrum1[j][i] = chunk[i+1];
-            mel_cepstrum2[j][i] = chunk[i+1+cepstrum_length];
+	  mel_cepstrum1[j][i] = chunk[i+1];
+	  mel_cepstrum2[j][i] = chunk[i+1+cepstrum_length];
         }
 
     }
 
-    Decompress(spectrogram,aperiodicity,f0_length,fs,fft_size,cepstrum_length,mel_cepstrum1,mel_cepstrum2);
+  Decompress(spectrogram,aperiodicity,f0_length,fs,fft_size,cepstrum_length,mel_cepstrum1,mel_cepstrum2);
 
-    DeCap(fs, f0, f0_length, spectrogram);
+  DeCap(fs, f0, f0_length, spectrogram);
 
-    // The length of the output waveform
-    int y_length =
-        static_cast<int>((f0_length - 1) * FRAMEPERIOD / 1000.0 * fs) + 1;
-    double *y = new double[y_length];
-    // Synthesis
-    WaveformSynthesis(f0, f0_length, spectrogram, aperiodicity, fft_size,
-                      FRAMEPERIOD, fs, y_length, y);
+  // The length of the output waveform
+  int y_length =
+    static_cast<int>((f0_length - 1) * FRAMEPERIOD / 1000.0 * fs) + 1;
+  double *y = new double[y_length];
+  // Synthesis
+  WaveformSynthesis(f0, f0_length, spectrogram, aperiodicity, fft_size,
+		    FRAMEPERIOD, fs, y_length, y);
 
-    // Output
-    wavwrite(y, y_length, fs, 16, argv[2]);
+  // Output
+  wavwrite(y, y_length, fs, 16, argv[2]);
 
-    printf("complete.\n");
+  printf("complete.\n");
 
-    delete[] time_axis;
-    delete[] f0;
-    delete[] y;
-    for (int i = 0; i < f0_length; ++i)
+  delete[] time_axis;
+  delete[] f0;
+  delete[] y;
+  for (int i = 0; i < f0_length; ++i)
     {
-        delete[] spectrogram[i];
-        delete[] aperiodicity[i];
+      delete[] spectrogram[i];
+      delete[] aperiodicity[i];
     }
-    delete[] spectrogram;
-    delete[] aperiodicity;
+  delete[] spectrogram;
+  delete[] aperiodicity;
 
-    return 0;
+  return 0;
 }

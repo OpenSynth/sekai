@@ -7,7 +7,9 @@ add_library(sekai SHARED
 set(HEADERS 
 	midi.h
 	mfcc.h
+	SekaiContext.h
 	VVDReader.h
+	vvd.h
 )
 
 

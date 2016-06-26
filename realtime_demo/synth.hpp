@@ -16,6 +16,8 @@ class Synth
 		int notenum;
 		int lastnote;
 		int current_frame;
+		int current_oto;
+		float amp;
 		///
 		int rb;
 		int samplerate;
