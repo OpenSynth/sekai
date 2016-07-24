@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
-#ifndef VVDREADER_H
-#define VVDREADER_H
+#ifndef SEKAI_VVDREADER_H
+#define SEKAI_VVDREADER_H
 
 #include <string>
 #include <vector>

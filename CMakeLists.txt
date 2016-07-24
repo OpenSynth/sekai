@@ -2,7 +2,9 @@ add_library(sekai SHARED
 	src/mfcc.cpp
 	src/midi.cpp
 	src/SekaiContext.cpp
-	src/VVDReader.cpp)
+	src/VVDReader.cpp
+	src/common.cpp
+)
 
 set(HEADERS 
 	src/sekai/midi.h
@@ -10,6 +12,7 @@ set(HEADERS
 	src/sekai/SekaiContext.h
 	src/sekai/VVDReader.h
 	src/sekai/vvd.h
+	src/sekai/common.h
 )
 
 

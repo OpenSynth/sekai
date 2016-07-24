@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */ 
 
+#ifndef SEKAI_HZOSC_H
+#define SEKAI_HZOSC_H
+
 #include <fftw3.h>
 
 #define N_OSC 100
@@ -38,4 +41,6 @@ private:
   fftw_plan inverse_c2r;
   double rover[FFT_SIZE/2];
 };
+
+#endif
 
