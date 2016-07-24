@@ -22,10 +22,11 @@
 class SekaiContext : public WorldContext
 {
 	public:
-		int cepstrum_length;
-		float** mel_cepstrum1;
-		float** mel_cepstrum2;
+		int cepstrum_length=0;
+		float** mel_cepstrum1=0;
+		float** mel_cepstrum2=0;
 		void Decompress();
 		void Compress();
+		virtual ~SekaiContext();
 };
 #endif

@@ -54,3 +54,15 @@ void SekaiContext::Compress() {
 
   printf("COMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
 }
+SekaiContext::~SekaiContext()
+{
+	fprintf("SekaiContext::DestroyMemory");
+	for (int i = 0; i < f0_length; ++i) {
+		if(mel_cepstrum1[i]) delete[] mel_cepstrum1[i];
+		if(mel_cepstrum2[i]) delete[] mel_cepstrum2[i];
+	}
+	delete[] mel_cepstrum1;
+	delete[] mel_cepstrum2;
+	mel_cepstrum1 = 0;
+	mel_cepstrum2 = 0;
+}

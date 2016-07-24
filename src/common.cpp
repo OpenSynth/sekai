@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <math.h>
 #include <sekai/common.h>
 float interp_linear(float* x,float* y,int nx,float ref)
 {

@@ -1,0 +1,13 @@
+#!/bin/bash
+PKG=sekai
+VER=0.3.1
+git clone . $PKG-$VER
+rm -rf $PKG-$VER/.git
+#rm $PKG-$VER/gitbuild
+tar czvf $PKG'_'$VER.orig.tar.gz $PKG-$VER
+cd $PKG-$VER
+debuild -us -uc -S
+#debuild -us -uc
+cd ..
+rm -rf $PKG-$VER
+

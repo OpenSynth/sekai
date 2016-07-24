@@ -1,3 +1,9 @@
+sekai (0.3.1-1) unstable; urgency=medium
+
+  * fix memory leak, add interp_linear function.
+
+ -- Tobias Platen <tobias@platen-software.de>  Sun, 24 Jul 2016 11:08:37 +0200
+
 sekai (0.3.0-1) unstable; urgency=low
 
   * Initial release
