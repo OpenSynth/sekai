@@ -54,6 +54,9 @@ void SekaiContext::Compress() {
 
   printf("COMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
 }
+
+
+
 SekaiContext::~SekaiContext()
 {
 	fprintf(stderr,"SekaiContext::DestroyMemory\n");

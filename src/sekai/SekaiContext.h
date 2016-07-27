@@ -25,8 +25,10 @@ class SekaiContext : public WorldContext
 		int cepstrum_length=0;
 		float** mel_cepstrum1=0;
 		float** mel_cepstrum2=0;
+		SekaiContext(): WorldContext(){}
+		~SekaiContext();
 		void Decompress();
 		void Compress();
-		virtual ~SekaiContext();
+		
 };
 #endif

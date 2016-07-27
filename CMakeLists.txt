@@ -28,13 +28,15 @@ install(FILES ${HEADERS} DESTINATION include/sekai)
 
 EXECUTE_PROCESS(COMMAND dpkg-architecture -qDEB_HOST_MULTIARCH OUTPUT_VARIABLE
   CMAKE_ARCH_TRIPLET OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-install(TARGETS sekai
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib/${CMAKE_ARCH_TRIPLET}
-)
-
+  
 add_executable(wav2vvd src/wav2vvd.cpp)
 add_executable(vvd2wav src/vvd2wav.cpp)
 target_link_libraries(vvd2wav sekai world sndfile)
 target_link_libraries(wav2vvd sekai world sndfile)
+
+install(TARGETS sekai wav2vvd vvd2wav
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib/${CMAKE_ARCH_TRIPLET}
+)
+
+
