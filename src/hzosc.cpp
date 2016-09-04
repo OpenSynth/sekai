@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "hzosc.h"
+#include "sekai/hzosc.h"
 
 
 double ifft_scale_sinc = 512.000000;

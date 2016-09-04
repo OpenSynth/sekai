@@ -4,6 +4,8 @@ add_library(sekai SHARED
 	src/SekaiContext.cpp
 	src/VVDReader.cpp
 	src/common.cpp
+	src/hzosc.cpp
+	src/epr.cpp
 )
 
 set(HEADERS 
@@ -13,6 +15,8 @@ set(HEADERS
 	src/sekai/VVDReader.h
 	src/sekai/vvd.h
 	src/sekai/common.h
+	src/sekai/hzosc.h
+	src/sekai/epr.h
 )
 
 
@@ -22,6 +26,9 @@ set(SEKAI_VERSION_PATCH 0)
 set(SEKAI_VERSION_STRING ${SEKAI_VERSION_MAJOR}.${SEKAI_VERSION_MINOR}.${SEKAI_VERSION_PATCH})
 set_target_properties(sekai PROPERTIES VERSION ${SEKAI_VERSION_STRING}
                                            SOVERSION ${SEKAI_VERSION_MAJOR})
+                                           
+target_link_libraries(sekai fftw3)
+                                           
 include_directories(src)
 
 install(FILES ${HEADERS} DESTINATION include/sekai)

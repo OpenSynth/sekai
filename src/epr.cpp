@@ -16,8 +16,8 @@
 */
 #include <stdlib.h>
 #include <math.h>
-#include "common.h"
-#include "epr.h"
+#include "sekai/common.h"
+#include "sekai/epr.h"
 
 #include <assert.h>
 
