@@ -1,7 +1,8 @@
 #!/bin/bash
 PKG=sekai
-VER=0.3.1
+VER=0.3.2
 git clone . $PKG-$VER
+cp debian/changelog $PKG-$VER/debian/changelog
 rm -rf $PKG-$VER/.git
 #rm $PKG-$VER/gitbuild
 tar czvf $PKG'_'$VER.orig.tar.gz $PKG-$VER

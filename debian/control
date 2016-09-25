@@ -1,7 +1,7 @@
 Source: sekai
 Priority: optional
 Maintainer: Tobias Platen <tobias@platen-software.de>
-Build-Depends: debhelper (>= 8.0.0), cmake, libworld-dev, libsndfile-dev
+Build-Depends: debhelper (>= 8.0.0), cmake, libworld-dev, libsndfile-dev, libfftw3-dev
 Standards-Version: 3.9.4
 Section: libs
 Homepage: https://notabug.org/isengaara/sekai
