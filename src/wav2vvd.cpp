@@ -41,6 +41,8 @@ int main(int argc, char *argv[]) {
   double *x = wavReadMono(argv[1],&fs,&x_length);
   //check for errors
   
+  
+  
   SekaiContext ctx;
   // You must set fs and frame_period before analysis/synthesis.
   ctx.fs = fs;
@@ -51,6 +53,7 @@ int main(int argc, char *argv[]) {
   // Generally, the inverse of the lowest F0 of speech is the best.
   // However, the more elapsed time is required.
   ctx.frame_period = 5.0;
+ 
 
   // F0 estimation
   ctx.F0Estimation(x, x_length);

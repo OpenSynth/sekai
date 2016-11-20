@@ -197,7 +197,7 @@ double EprAtFrequency(EprSourceParams* params,double f,int fs,EprResonance* res,
     {
       double x = EprResonanceAtFrequency(&res[i],f,fs);
       assert(!isnan(x));
-      accu += x;
+      if(res[i].enabled) accu += x;
     }
 
   return (TWENTY_OVER_LOG10 * log(accu)) + source;

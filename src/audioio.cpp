@@ -14,16 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/ 
-//-----------------------------------------------------------------------------
-// Copyright 2012-2016 Masanori Morise. All Rights Reserved.
-// Author: mmorise [at] yamanashi.ac.jp (Masanori Morise)
-//
-// .wav input/output functions were modified for compatibility with C language.
-// Since these functions (wavread() and wavwrite()) are roughly implemented,
-// we recommend more suitable functions provided by other organizations.
-// This file is independent of WORLD project and for the test.cpp.
-//-----------------------------------------------------------------------------
+*/
 #include "audioio.h"
 
 #include <math.h>
@@ -40,6 +31,7 @@ double* wavReadMono(char* fileName,int* samplerate,int* length)
   *samplerate = info.samplerate;
   *length = info.frames;
   if(info.channels!=1) return NULL;
+  fprintf(stderr,"reading.....\n");
   double* ret = new double[*length];
   sf_read_double(sf,ret,*length);
   sf_close(sf);

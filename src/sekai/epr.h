@@ -32,6 +32,7 @@ typedef struct
 	double f;
 	double bw;
 	double gain_db;
+	int enabled;
 
 	//needs to be updated by calling EprResonanceUpdate if any user value is changed
 	double a;
