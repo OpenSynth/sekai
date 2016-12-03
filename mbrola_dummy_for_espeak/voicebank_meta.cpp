@@ -1,30 +1,11 @@
 #include "voicebank_meta.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h> 
+#include <sekai/VVDReader.h>
 
 VoicebankMeta::VoicebankMeta()
 {
-	segmentMap["_-k"]=0.9;
-	segmentMap["k-o"]=0.1;
-	segmentMap["o-n1:"]=0.5;
-	segmentMap["n1:-n1"]=0.5;
-	segmentMap["n1-i"]=0.5;
-	segmentMap["i-tS"]=0.8;
-	segmentMap["tS-i"]=0.2;
-	segmentMap["i-w"]=0.7;
-	segmentMap["w-a"]=0.3;
-	segmentMap["a-_"]=0.5;
-	segmentMap["_-n"]=0.5;
-	segmentMap["n-a"]=0.5;
-	segmentMap["a-k"]=0.9;
-	segmentMap["k-a"]=0.1;
-	segmentMap["a-Z"]=0.6;
-	segmentMap["Z-i"]=0.4;
-	segmentMap["i-m"]=0.5;
-	segmentMap["m-a"]=0.5;
-	segmentMap["a-d"]=0.7;
-	segmentMap["d-e"]=0.2;
-	segmentMap["e-s"]=0.7;
-	segmentMap["s-u_0"]=0.95;
-	segmentMap["u_0-_"]=0.5;
 }
 
 int VoicebankMeta::samplerate()
@@ -32,7 +13,93 @@ int VoicebankMeta::samplerate()
 	return 16000;
 }
 
-float  VoicebankMeta::lookupSegment(std::string segment)
+segment* VoicebankMeta::lookupSegment(std::string diph)
 {
-	return segmentMap[segment];
+	return segments[diph];
+}
+
+
+static int split(char* str,int len,int start,char chr)
+{
+	int i;
+	for(i=start;i<len;i++)
+	{
+		if(str[i]==chr)
+		{
+			str[i]=0;
+			return i;
+		}
+	}
+	return 0;
+}
+
+static void wav2vvd(char* str,int len)
+{
+	int i;
+	for(i=0;i<len-2;i++)
+	{
+		if(str[i]=='w'||str[i+1]=='a'||str[i+2]=='v')
+		{
+			str[i]='v';
+			str[i+1]='v';
+			str[i+2]='d';
+			return;
+		}
+	}
+}
+
+void VoicebankMeta::parseSegmentsFile(std::string fileName)
+{
+	char textbuf[1024];
+	FILE* f = fopen (fileName.c_str(),"r");
+	while(fgets(textbuf, sizeof(textbuf), f))
+	{
+		textbuf[strlen(textbuf)-1]=0;
+		int s1 = split(textbuf, sizeof(textbuf),0,'=');
+		int s2 = split(textbuf, sizeof(textbuf),s1,',');
+		int s3 = split(textbuf, sizeof(textbuf),s2,',');
+		int s4 = split(textbuf, sizeof(textbuf),s3,',');
+		
+		wav2vvd(textbuf,strlen(textbuf));
+		
+		
+		
+		std::string key = textbuf;
+		if(vvds.count(key)==0)
+		{
+			vvd* v = new vvd;
+			v->index = index++;
+			v->length = 0;
+			vvds[key] = v;
+		}
+		//add vvd to map
+		
+		key = textbuf+s1+1;
+		if(segments.count(key)==0)
+		{
+			segment* s = new segment;
+			s->start = atoi(textbuf+s2+1)*0.001;
+			s->end=atoi(textbuf+s3+1)*0.001;
+			s->middle=atoi(textbuf+s4+1)*0.001;
+			s->index=index;
+			segments[key]=s;
+		}
+		else
+		{
+			fprintf(stderr,"multiple entries for segment [%s]",textbuf+s1+1);
+			abort();
+		}
+		
+		//add segment to map
+		
+	}
+}
+
+void VoicebankMeta::loadVVDs(std::string basePath,VVDReader* reader)
+{
+	for ( const auto &it : vvds ) {
+		std::string vvdFullPath = basePath+"/"+it.first;
+        reader->addVVD(vvdFullPath);
+        it.second->length = reader->getSelectedLength();
+    }
 }

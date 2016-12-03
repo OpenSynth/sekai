@@ -40,8 +40,12 @@ inline double MyMin(double x, double y) {
 }
 
 #include "voicebank_meta.h"
+#include "voice_synth.h"
+#include <sekai/VVDReader.h>
 
 VoicebankMeta* voicebank;
+VVDReader* vvdreader;
+VoiceSynth* synth;
 
 
 #pragma mark wavwrite for streaming output
@@ -150,7 +154,8 @@ int read_pho_line(char* line,int* values)
 
 void drain_buffers(FILE* outfile)
 {
-    //TODO
+    //TODO run voice synthesizer
+    synth->drain();
 }
 
 void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
@@ -159,7 +164,17 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
     FILE* outfile;
     
     voicebank = new VoicebankMeta();
-
+    vvdreader = new VVDReader();
+    
+    std::string segmentFile = voicebank_path;
+    segmentFile+="/segments.ini";
+    
+    
+    
+    voicebank->parseSegmentsFile(segmentFile);
+    voicebank->loadVVDs(voicebank_path,vvdreader);
+    synth = new VoiceSynth();
+    
     // int tmp_buffer_len = 256;
     // double* tmp_buffer = new double[tmp_buffer_len];
 
@@ -182,6 +197,7 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
 
     int left_part = -1;
     int right_part = -1;
+    int current_pho = 0;
 
     while(fgets(line,sizeof(line),phofile)!= NULL) { /* read a line from a file */
 
@@ -200,7 +216,7 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
         if(ready==0)
         {
             wavwrite_header(outfile,-1,vb_samplerate,16);
-            fprintf(stderr,"#start2\n");
+            //fprintf(stderr,"#start2\n");
             fflush(outfile);
             ready = 1;
         }
@@ -214,24 +230,27 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
             int pitch_count = (count-1)/2;
             assert(pitch_count>=0);
 
-
-            ////            int noise_length = values[0]*0.001*vb_samplerate;
-            //wavwrite_noise(outfile,noise_length);
-
             if(line_counter>0) {
-                //fprintf(stderr,"DIPH: %s-%s\n",last_symbol.c_str(),line);
+                
                 std::string diphone=last_symbol+"-"+line;
                 
                 
-                float x = voicebank->lookupSegment(diphone);
+                segment* seg = voicebank->lookupSegment(diphone);
                 
-                if(x==0) {
+                
+                
+                if(seg==0) {
 					fprintf(stderr,"Fatal error: Unkown recovery for %s segment\n",diphone.c_str());
 					exit(1);
 				}
+				
+				float x = (seg->middle-seg->start)/(seg->end-seg->start);
                 
                 right_part = (1-x)*values[0];
-                fprintf(stderr,"%s %i_%i\n",diphone.c_str(),left_part,right_part);
+                
+                synth->addPho(current_pho,current_pho+left_part,current_pho+left_part+right_part);
+                current_pho+=left_part+right_part;
+                
                 left_part = x*values[0];
             }
             else //special case: prepare first segment
@@ -241,12 +260,12 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
             last_symbol=line;
 
             if(pitch_count==0) {
-                if(0) fprintf(stderr,"time: %i pitch undefined\n",pos_ms);
+                synth->add_pitch_point(pos_ms,0);
             }
             else for(int i=0;i<pitch_count;i++)
             {
                 int timestamp = pos_ms+values[0]*0.01*values[i*2+1];
-                if(0) fprintf(stderr,"time: %i pitch %i\n",timestamp,values[i*2+2]);
+                synth->add_pitch_point(timestamp,values[i*2+2]);
             }
 
             last_pos_ms = pos_ms;
@@ -256,16 +275,14 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
 
             drain_buffers(outfile);
 
-            //TODO -- drain buffers if possible -- run synth and output
-
         }
 
     }
-    {
+    
         fprintf(stderr,"cleanup -- line counter %i pos_ms: %i\n",line_counter,pos_ms);
         //flush all buffers -- do not feed any new commands
         drain_buffers(outfile);
-    }
+    
 }
 
 int main(int argc,char** argv)
