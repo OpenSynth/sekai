@@ -110,17 +110,7 @@ void wavwrite_data(FILE* fp,int x_length,double* x)
     fflush(stdout);
 }
 
-void wavwrite_data2(FILE* fp,int x_length,float* x)
-{
 
-    int16_t tmp_signal;
-    for (int i = 0; i < x_length; ++i) {
-        tmp_signal = static_cast<int16_t>(MyMax(-32768,
-                                                MyMin(32767, static_cast<int>(x[i] * 32767))));
-        fwrite(&tmp_signal, 2, 1, fp);
-    }
-    fflush(stdout);
-}
 
 #pragma mark reading pho files and pho datastructs
 
@@ -152,11 +142,8 @@ int read_pho_line(char* line,int* values)
 
 
 
-void drain_buffers(FILE* outfile)
-{
-    //TODO run voice synthesizer
-    synth->drain();
-}
+
+
 
 void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
 {
@@ -173,7 +160,7 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
     
     voicebank->parseSegmentsFile(segmentFile);
     voicebank->loadVVDs(voicebank_path,vvdreader);
-    synth = new VoiceSynth();
+    synth = new VoiceSynth(vvdreader);
     
     // int tmp_buffer_len = 256;
     // double* tmp_buffer = new double[tmp_buffer_len];
@@ -248,7 +235,7 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
                 
                 right_part = (1-x)*values[0];
                 
-                synth->addPho(current_pho,current_pho+left_part,current_pho+left_part+right_part);
+                synth->addPho(current_pho,current_pho+left_part,current_pho+left_part+right_part,seg->index,seg->start,seg->middle,seg->end);
                 current_pho+=left_part+right_part;
                 
                 left_part = x*values[0];
@@ -273,7 +260,7 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
 
             line_counter++;
 
-            drain_buffers(outfile);
+            synth->drain(outfile);
 
         }
 
@@ -281,7 +268,8 @@ void mbro_core(char* voicebank_path,char* inphofile,char* outwavfile)
     
         fprintf(stderr,"cleanup -- line counter %i pos_ms: %i\n",line_counter,pos_ms);
         //flush all buffers -- do not feed any new commands
-        drain_buffers(outfile);
+        //synth->addPho(current_pho,current_pho,current_pho,-1,0,0,0);
+        synth->drain2(outfile);
     
 }
 

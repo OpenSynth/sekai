@@ -6,6 +6,7 @@
 
 VoicebankMeta::VoicebankMeta()
 {
+	index=0;
 }
 
 int VoicebankMeta::samplerate()
@@ -68,9 +69,10 @@ void VoicebankMeta::parseSegmentsFile(std::string fileName)
 		if(vvds.count(key)==0)
 		{
 			vvd* v = new vvd;
-			v->index = index++;
+			v->index = index;
 			v->length = 0;
 			vvds[key] = v;
+			index++;
 		}
 		//add vvd to map
 		
@@ -78,10 +80,10 @@ void VoicebankMeta::parseSegmentsFile(std::string fileName)
 		if(segments.count(key)==0)
 		{
 			segment* s = new segment;
-			s->start = atoi(textbuf+s2+1)*0.001;
-			s->end=atoi(textbuf+s3+1)*0.001;
-			s->middle=atoi(textbuf+s4+1)*0.001;
-			s->index=index;
+			s->start = atoi(textbuf+s2+1)/16000.0;
+			s->end=atoi(textbuf+s3+1)/16000.0;
+			s->middle=atoi(textbuf+s4+1)/16000.0;
+			s->index=index-1;
 			segments[key]=s;
 		}
 		else
