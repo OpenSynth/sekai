@@ -37,7 +37,8 @@ VoiceSynth::VoiceSynth(VVDReader* reader)
 {
 	this->reader=reader;
 	fprintf(stderr,"frameSize %i\n",reader->getFrameSize());
-	vvddata = (float*) malloc(reader->getFrameSize());
+	vvddata  = (float*) malloc(reader->getFrameSize());
+	vvddata2 = (float*) malloc(reader->getFrameSize());
 	
 	pitchReadPos=0;
 	pitchWritePos=0;
@@ -71,7 +72,7 @@ VoiceSynth::VoiceSynth(VVDReader* reader)
     aperiodicity = new double*[number_of_pointers];
     for(int i=0;i<number_of_pointers;i++)
     {
-         spectrogram[i] = new double[fft_size/2+1];
+         spectrogram[i]  = new double[fft_size/2+1];
          aperiodicity[i] = new double[fft_size/2+1];
     }
     rb=0;
@@ -112,6 +113,46 @@ void VoiceSynth::startCat()
 		catStart  = pho[phoReadPos].middle;
 		catMiddle = pho[phoReadPos].end;
 		catEnd    = pho[phoReadPos1].middle;
+		
+		if(reader->selectVVD(pho[phoReadPos].vindex)==false)
+		{
+			fprintf(stderr,"select vvd %i failed\n",pho[phoReadPos].vindex);
+			abort();
+		}
+		
+		float index = pho[phoReadPos].vend*1000/reader->getFramePeriod();
+		if(reader->getSegment(index,(void*)vvddata)==false)
+		{
+			fprintf(stderr,"read segment failed\n");
+			abort();
+		}
+		
+		if(reader->selectVVD(pho[phoReadPos1].vindex)==false)
+		{
+			fprintf(stderr,"select vvd %i failed\n",pho[phoReadPos].vindex);
+			abort();
+		}
+		
+		index = pho[phoReadPos1].vstart*1000/reader->getFramePeriod();
+		if(reader->getSegment(index,(void*)vvddata2)==false)
+		{
+			fprintf(stderr,"read segment failed\n");
+			abort();
+		}
+		
+		int cepstrum_length = reader->getCepstrumLength();
+		
+		fprintf(stderr,"use delta for cat\n");
+		for(int i=1;i<cepstrum_length+1;i++)
+		{
+			vvddata2[i]-=vvddata[i];
+		}
+		
+		
+		
+		
+		
+		
 	}
 }
 			
@@ -204,15 +245,26 @@ void VoiceSynth::drain(FILE* outfile)
 			
 		}
 		
-		float origF0 = vvddata[0];
-		//fprintf(stderr,"origF0: %f\n",frequencyFromNote(origF0));
-		
-		//fprintf(stderr,"coeff: %f %f %f %f ssinterp: %f\n",cepstrum[0],cepstrum[1],cepstrum[2],cepstrum[3],ssinterp);
-		
 		int cepstrum_length = reader->getCepstrumLength();
 		
 		float* mel_cepstrum1 = &vvddata[1];
         float* mel_cepstrum2 = &vvddata[1+cepstrum_length];
+        
+        float* mel_cepstrum1_cat = &vvddata2[1];
+        float* mel_cepstrum2_cat = &vvddata2[1+cepstrum_length];
+        
+        //this smoothing algorithm is also used in Vocaloid
+        
+        for(int i=0;i<cepstrum_length;i++)
+        {
+			mel_cepstrum1[i] += -0.5*ssinterp*mel_cepstrum1_cat[i];
+			mel_cepstrum2[i] += -0.5*ssinterp*mel_cepstrum2_cat[i];
+		}
+		
+		fprintf(stderr,"coeff: %f %f %f %f ssinterp: %f\n",mel_cepstrum1[0],mel_cepstrum1[1],
+															mel_cepstrum1[2],mel_cepstrum1[3],ssinterp);
+		
+		
 
         MFCCDecompress(&spectrogram[rb],1,samplerate, fft_size,cepstrum_length,&mel_cepstrum1,false);
         MFCCDecompress(&aperiodicity[rb],1,samplerate, fft_size,cepstrum_length,&mel_cepstrum2,true);

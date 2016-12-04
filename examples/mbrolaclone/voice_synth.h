@@ -42,6 +42,7 @@ class VoiceSynth
 	
 	VVDReader* reader;
 	float* vvddata;
+	float* vvddata2;
 	
 	//world
 	
