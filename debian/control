@@ -6,6 +6,14 @@ Standards-Version: 3.9.4
 Section: libs
 Homepage: https://notabug.org/isengaara/sekai
 
+Package: sekai-tools
+Section: sound
+Architecture: any
+Multi-Arch: foreign
+Depends: libsekai0 (= ${binary:Version}), ${shlibs:Depends}, ${misc:Depends} 
+Description: addon for WORLD speech toolkit
+ contains wav2vvd and vvd2wav executables
+
 Package: libsekai-dev
 Section: libdevel
 Architecture: any

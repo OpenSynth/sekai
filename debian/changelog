@@ -1,17 +1,5 @@
-sekai (0.3.2-1) unstable; urgency=medium
+sekai (0.3.5-1) UNRELEASED; urgency=medium
 
-  * add more classes needed by madde.
+  * small fixes
 
- -- Tobias Platen <tobias@platen-software.de>  Sun, 25 Sep 2016 10:21:22 +0200
- 
-sekai (0.3.1-1) unstable; urgency=medium
-
-  * fix memory leak, add interp_linear function.
-
- -- Tobias Platen <tobias@platen-software.de>  Sun, 24 Jul 2016 11:08:37 +0200
-
-sekai (0.3.0-1) unstable; urgency=low
-
-  * Initial release
-
- -- Tobias Platen <tobias@platen-software.de>  Sun, 26 Jun 2016 10:36:27 +0200
+ -- Tobias Platen <tobias@platen-software.de>  Sun, 20 Nov 2016 16:21:51 +0100
