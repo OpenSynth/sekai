@@ -23,7 +23,7 @@
 void SekaiContext::Decompress() {
   DWORD elapsed_time;
   // Synthesis by the aperiodicity
-  printf("\nDecompress\n");
+  if(debug) printf("\nDecompress\n");
   elapsed_time = timeGetTime();
     
     
@@ -31,7 +31,7 @@ void SekaiContext::Decompress() {
   MFCCDecompress(aperiodicity,f0_length,fs, fft_size,cepstrum_length,mel_cepstrum2,true);
   
   
-  printf("DECOMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
+  if(debug) printf("DECOMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
 }
 
 void SekaiContext::Compress() {
@@ -46,20 +46,19 @@ void SekaiContext::Compress() {
       mel_cepstrum2[i]=new float[cepstrum_length];
     }
     
-  printf("\nCompress\n");
+  if(debug) printf("\nCompress\n");
   elapsed_time = timeGetTime();
  
   MFCCCompress(spectrogram,f0_length,fs, fft_size,cepstrum_length,mel_cepstrum1);
   MFCCCompress(aperiodicity,f0_length,fs, fft_size,cepstrum_length,mel_cepstrum2);
 
-  printf("COMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
+  if(debug) printf("COMPRESS: %d [msec]\n", timeGetTime() - elapsed_time);
 }
 
 
 
 SekaiContext::~SekaiContext()
 {
-	fprintf(stderr,"SekaiContext::DestroyMemory\n");
 	for (int i = 0; i < f0_length; ++i) {
 		if(mel_cepstrum1[i]) delete[] mel_cepstrum1[i];
 		if(mel_cepstrum2[i]) delete[] mel_cepstrum2[i];

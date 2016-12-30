@@ -19,6 +19,7 @@ set(HEADERS
 	src/sekai/epr.h
 )
 
+ADD_DEFINITIONS(-std=c++11)
 
 set(SEKAI_VERSION_MAJOR 0)
 set(SEKAI_VERSION_MINOR 3)

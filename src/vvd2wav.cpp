@@ -20,7 +20,7 @@
 #include "sekai/vvd.h"
 #include "world/cheaptrick.h"
 #include "sekai/midi.h"
-#include "world/audioio.h"
+#include <sndfile.h>
 
 //-----------------------------------------------------------------------------
 // Test program.
@@ -101,7 +101,15 @@ int main(int argc, char *argv[]) {
   // Synthesis 1 (conventional synthesis)
   for (int i = 0; i < y_length; ++i) y[i] = 0.0;
   ctx.WaveformSynthesis( hdr.fs, y_length, y);
-  wavWriteMono(argv[2],hdr.fs,y_length,y);
+  
+  SF_INFO info;
+  memset(&info,0,sizeof(info));
+  info.format =  SF_FORMAT_WAV | SF_FORMAT_PCM_16;
+  info.samplerate = hdr.fs;
+  info.channels = 1;
+  SNDFILE* sf = sf_open(argv[2],SFM_WRITE,&info);
+  int count = sf_write_double(sf,y,y_length);
+  sf_close(sf);
 
   delete[] y;
   //TODO: proper memory management DestroyMemory(&world_parameters);

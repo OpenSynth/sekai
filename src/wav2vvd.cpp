@@ -17,7 +17,7 @@
 */ 
     
 #include "sekai/SekaiContext.h"
-#include "world/audioio.h"
+#include <sndfile.h>
 #include "world/cheaptrick.h"
 #include "sekai/midi.h"
 #include "sekai/vvd.h"
@@ -36,10 +36,22 @@ int main(int argc, char *argv[]) {
     return -2;
   }
 
-  int x_length;
-  int fs;
-  double *x = wavReadMono(argv[1],&fs,&x_length);
-  //check for errors
+  //read from sndfile
+  SF_INFO info;
+  memset(&info,0,sizeof(info));
+  SNDFILE* infile = sf_open(argv[1],SFM_READ,&info);
+  if(infile==0) {
+    printf("errror: cannot open wav file\n");
+  }
+  int fs, x_length;
+  fs = info.samplerate;
+  x_length = info.frames;
+  if(info.channels!=1) {
+    printf("error: wavfile must be mono\n");
+  }
+  double *x = new double[x_length];
+  sf_read_double(infile,x,x_length);
+  sf_close(infile);
   
   
   
