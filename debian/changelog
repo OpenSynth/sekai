@@ -1,3 +1,9 @@
+sekai (0.4.0-1) UNRELEASED; urgency=medium
+
+  * release 0.4.0
+
+ -- Tobias Platen <tobias@platen-software.de>  Fri, 30 Dec 2016 18:41:21 +0100
+
 sekai (0.3.5-1) UNRELEASED; urgency=medium
 
   * small fixes
