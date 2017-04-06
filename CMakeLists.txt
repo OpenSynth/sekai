@@ -3,6 +3,7 @@ add_library(sekai SHARED
 	src/midi.cpp
 	src/SekaiContext.cpp
 	src/VVDReader.cpp
+	src/OLABuffer.cpp
 	src/common.cpp
 	src/hzosc.cpp
 	src/epr.cpp
@@ -13,6 +14,7 @@ set(HEADERS
 	src/sekai/mfcc.h
 	src/sekai/SekaiContext.h
 	src/sekai/VVDReader.h
+	src/sekai/OLABuffer.h
 	src/sekai/vvd.h
 	src/sekai/common.h
 	src/sekai/hzosc.h
