@@ -17,8 +17,6 @@
 
 #include "sekai/OLABuffer.h"
 
-
-
 OLABuffer::OLABuffer( int bufferLen ) {
 
   length = bufferLen; // init the OLA buffer to 0
@@ -30,14 +28,19 @@ OLABuffer::OLABuffer( int bufferLen ) {
 }
 
 
-void OLABuffer::ola( float *frame, int frameLen, int period ) {
+void OLABuffer::ola( float *frame, int frameLen, float period ) {
 
   int m,k;
+  
+  float a = atLoc-((int)atLoc);
+  float b = 1-a;
+  float nextSample = 0;
 
   for( k=0; k<frameLen; k++ ) {
     
-    m = (pos+((int)atLoc)+k)%length; // we cycle through OLA buffer indices
-    rawData[m] += frame[k]; // and add the current frame at location
+    m = (pos+((int)atLoc)+k)%length; 	   // we cycle through OLA buffer indices
+    if(k<frameLen-1) nextSample=frame[k+1];
+    rawData[m] += frame[k]*a+nextSample*b; // and add the current frame at location and apply fractional delay
   }
 
   atLoc+=period;      //buffer location
@@ -46,20 +49,23 @@ void OLABuffer::ola( float *frame, int frameLen, int period ) {
 
 }
 
-void OLABuffer::ola( double *frame, int frameLen, int period ) {
+void OLABuffer::ola( double *frame, int frameLen, float period ) {
 
   int m,k;
+  
+  float a = atLoc-((int)atLoc);
+  float b = 1-a;
+  float nextSample = 0;
 
   for( k=0; k<frameLen; k++ ) {
     
-    m = (pos+((int)atLoc)+k)%length; // we cycle through OLA buffer indices
-    rawData[m] += frame[k]; // and add the current frame at location
+    m = (pos+((int)atLoc)+k)%length; 	   // we cycle through OLA buffer indices
+    if(k<frameLen-1) nextSample=frame[k+1];
+    rawData[m] += frame[k]*a+nextSample*b; // and add the current frame at location and apply fractional delay
   }
 
   atLoc+=period;      //buffer location
   timeSamples+=period;//absolute time
-
-
 }
 
 bool OLABuffer::isFilled(int size)
@@ -98,7 +104,51 @@ void OLABuffer::pop( float *buffer, int bufferLen ) {
   // finally move pos to next
   pos = (pos+bufferLen)%length;
 
-  atLoc -= bufferLen;
-
-	
+  atLoc -= bufferLen;	
 }
+
+#ifdef TEST_OLABUFFER
+#include <sndfile.h>
+int main()
+{
+	float* frame;
+	int frameLen;
+	
+	SF_INFO info;
+	SNDFILE* sf = sf_open("vowel_a.wav",SFM_READ,&info);
+	frameLen = info.frames;
+	frame = new float[frameLen];
+	sf_read_float(sf,frame,frameLen);
+	sf_close(sf);
+	
+	info.frames = 0;
+	info.sections = 0;
+	info.seekable = 0;
+	sf = sf_open("output.wav",SFM_WRITE,&info);
+	
+	float period = 44100.0/440.0;
+	fprintf(stderr,"period = %f\n",period);
+	
+	#define OUTBUF_LEN 1024
+	float outbuf[OUTBUF_LEN];
+	
+	OLABuffer buffer(2048*8);
+	while(buffer.currentTime()<44100)
+	{
+		
+		buffer.ola(frame,frameLen,period);
+		while(buffer.isFilled(OUTBUF_LEN*4))
+		{
+			buffer.pop(outbuf,OUTBUF_LEN);
+			sf_write_float(sf,outbuf,OUTBUF_LEN);
+		}
+	}
+	while(buffer.isFilled(OUTBUF_LEN))
+	{
+		buffer.pop(outbuf,OUTBUF_LEN);
+		sf_write_float(sf,outbuf,OUTBUF_LEN);
+	}
+	
+	sf_close(sf);
+}
+#endif

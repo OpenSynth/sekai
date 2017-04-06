@@ -24,16 +24,16 @@
 class OLABuffer {
   public:
     OLABuffer(int bufferLen);
-    void ola(float *frame, int frameLen, int period);
-    void ola(double *frame, int frameLen, int period);
+    void ola(float *frame, int frameLen, float period);
+    void ola(double *frame, int frameLen, float period);
     void pop(float *buffer, int bufferLen);
     bool isFilled(int size);
     int currentTime();
   protected:
     float *rawData;
     int length, pos;
-    int timeSamples;
-    int atLoc;
+    float timeSamples;
+    float atLoc;
 };
 
 #endif
