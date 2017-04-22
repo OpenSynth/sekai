@@ -23,6 +23,7 @@ public:
     WorldSynth2(int bufferLen,int fft_size,int fs);
     void setF0(float f0){this->f0= f0;}
     void setSilence(){this->silence= true;}
+    void setFrame(float* mel_cepstrum1,float* mel_cepstrum2,int cepstrum_length);
     void doSynth();
 };
 #endif

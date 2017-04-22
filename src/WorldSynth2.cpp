@@ -1,4 +1,5 @@
 #include "sekai/WorldSynth2.h"
+#include "sekai/mfcc.h"
 
 WorldSynth2::WorldSynth2(int bufferLen,int fft_size,int fs): OLABuffer(bufferLen), fft_size(fft_size), fs(fs){
     response = new double[fft_size];
@@ -44,6 +45,15 @@ void WorldSynth2::doSynth()
     }
 
     ola(response,fft_size,period);
+}
+
+void WorldSynth2::setFrame(float* mel_cepstrum1,float* mel_cepstrum2,int cepstrum_length)
+{
+	silence=false;
+    double* d1 = spectral_envelope;
+    double* d2 = aperiodic_ratio;                
+    MFCCDecompress(&d1,1,fs, fft_size, cepstrum_length,&mel_cepstrum1,false);
+    MFCCDecompress(&d2,1,fs, fft_size, cepstrum_length,&mel_cepstrum2,true);
 }
 
 
