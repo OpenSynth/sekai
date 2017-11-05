@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   ctx.cepstrum_length = hdr.cepstrum_length;
   ctx.fs = hdr.fs;
   CheapTrickOption option = {0};
-  InitializeCheapTrickOption(&option);
+  InitializeCheapTrickOption(0,&option);
   ctx.fft_size = GetFFTSizeForCheapTrick(ctx.fs,&option);
   //ignore flags
   
