@@ -1,7 +1,15 @@
 #ifndef SYNTH
 #define SYNTH
-#include <world/synthesisrealtime.h>
 #include <sekai/VVDReader.h>
+#include <sekai/WorldSynth2.h>
+
+struct segment
+{
+    float x;
+    float y;
+    int count;
+};
+
 class Synth
 {
 	public:
@@ -12,26 +20,20 @@ class Synth
 	void noteOff(int notenum);
 	void fill(float* samples,int count);
 	private:
-		WorldSynthesizer rtsynth;
-		int notenum;
-		int lastnote;
-		int current_frame;
-		int current_oto;
-		float amp;
-		///
-		int rb;
-		int samplerate;
-		double frame_period;
-		int fft_size;
-		int buffer_size;
-		int number_of_pointers;
-		int note_time;
-		
-		double* f0;
-		double** spectrogram;
-		double** aperiodicity;
-		
-		VVDReader* vvdreader;
-		void* vvddata;
+        //synth
+        int samplerate;
+        int buffer_size;
+		WorldSynth2* synth;
+		VVDReader* reader;
+        float* vvddata;
+        
+        //input handling
+        int notenum;
+        int current_oto;
+        
+        segment* getCurrentSegment(int pos);
+        float getCurrentF0(int pos);
+        
+    
 };
 #endif
