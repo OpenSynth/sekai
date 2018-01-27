@@ -3,8 +3,16 @@
 #include <iostream>
 #include <stdlib.h>     /* srand, rand */
 #include <sekai/mfcc.h>
+#include <json/json.h>
+#include <iostream>
+#include <fstream>
+#include <sekai/common.h>
 
 #define TWOPI (2*M_PI)
+
+using namespace std;
+
+extern std::string basedir;
 
 double midi_freq(float m) {
   /* converts a MIDI note number to a frequency
@@ -23,16 +31,45 @@ void Synth::init(int samplerate,int buffer_size)
   this->samplerate = samplerate;
   this->buffer_size = buffer_size;
   
+  enabled = false;
+  
   reader = new VVDReader();
-  reader->addVVD("do.vvd");		//0
-  reader->addVVD("re.vvd");		//1
-  reader->addVVD("mi.vvd");		//2
-  reader->addVVD("fa.vvd");		//3
-  reader->addVVD("sol.vvd");		//4
-  reader->addVVD("la.vvd");		//5
-  reader->addVVD("si.vvd");		//6
-  reader->addVVD("silence.vvd");	//7
-  current_oto  = 7;
+  int fft_size = 2048;
+  fprintf(stderr,"sample_rate=%i\n",samplerate);
+  synth = new WorldSynth2(1024*1024*1024,fft_size,samplerate);
+  
+  //jsoncpp is only used by this test program
+  ifstream ifs(basedir+"/voice.json");
+  Json::Reader jreader;
+  Json::Value arr;
+  jreader.parse(ifs, arr); 
+    
+  for (int i = 0; i < arr.size(); i++){
+        std::string vvd = arr[i]["vvd"].asString();
+        auto x = arr[i]["x"];
+        auto y = arr[i]["y"];
+        bool valid = reader->addVVD(basedir+"/"+vvd);
+        if(!valid) {
+                fprintf(stderr,"invalid vvd\n");
+                abort();
+        }
+        if(x.size()!=y.size())
+        {
+            fprintf(stderr,"invalid entry in voices.json\n");
+            abort();
+        }
+        segment* seg = new segment;
+        seg->count=x.size();
+        seg->x=new float[seg->count];
+        seg->y=new float[seg->count];
+        for (int j = 0; j < x.size(); j++){
+                seg->x[j]=x[j].asInt()*0.001;
+                seg->y[j]=y[j].asInt()*0.001;
+        }
+        segments.push_back(seg);
+  }
+  
+  
 	
   vvddata = (float*) new char[reader->getFrameSize()];//FIXME add allocator for vvddata
     
@@ -44,9 +81,10 @@ Synth::~Synth()
 
 void Synth::noteOn(int notenum, int velocity)
 {
-
-  //lastnote=this->notenum;
- 
+  this->notenum = notenum;
+  int current_samples = synth->currentTime();//time in samples
+  float current_time = current_samples*1.0/samplerate;
+  
   switch(notenum % 12)
     {
     case 0:
@@ -74,14 +112,29 @@ void Synth::noteOn(int notenum, int velocity)
       current_oto = 7;
     }
 		
-  fprintf(stderr,"select %i\n",reader->selectVVD(current_oto));
+  //fprintf(stderr,"select %i\n",reader->selectVVD(current_oto));
 		
-  //fprintf(stderr,"noteOn: %i %i\n",notenum,velocity);
+        
+    if(current_oto!=7)
+    {
+        segment* seg = segments[current_oto];
+        float delta = current_time - seg->x[0];
+        for(int i=0;i<seg->count;i++)
+        {
+            seg->x[i]+=delta;
+        }
+        reader->selectVVD(current_oto);
+        enabled = true;
+    }
+    else
+        enabled = false;
+  
 		
 }
 void Synth::noteOff(int notenum)
 {
     this->notenum = 0;
+    enabled=false;
 #if 0
   if(notenum==this->notenum)
     {
@@ -98,13 +151,18 @@ void Synth::noteOff(int notenum)
 float Synth::getCurrentF0(int pos)
 {
     (void) pos;
-    if(notenum) return midi_freq(notenum);
-    else return 0;
+    if(notenum) return (float)midi_freq(notenum);
+    else return 0.0;
 }
 
 segment* Synth::getCurrentSegment(int)
 {
-    return 0;
+    if(enabled)
+    {
+            return segments[current_oto];
+    }
+    else return 0;
+    
 }
 
 void Synth::fill(float* buffer, int size)
@@ -113,24 +171,33 @@ void Synth::fill(float* buffer, int size)
     while(1)
     {
  
-    float current_time = synth->currentTime();//time in samples
-    //TODO: 1
-    segment* seg = getCurrentSegment(current_time);
+    int current_samples = synth->currentTime();//time in samples
+    float current_time = current_samples*1.0/samplerate;
     
+    segment* seg = getCurrentSegment(current_samples);
     
-
+    #if 1
+    if(seg && current_time > seg->x[seg->count-1])
+    {
+        enabled=false;
+        seg=0;
+    }
+    #endif
+    
     if(seg) {
-        float f0 = getCurrentF0(current_time);
-        synth->setF0(f0);
-        float fractionalIndex=0;//FIXME
+        float f0 = getCurrentF0(current_samples);
+        
+        
+        float fractionalIndex=interp_linear(seg->x,seg->y,seg->count,current_time)*1000.0/reader->getFramePeriod();
         reader->getSegment(fractionalIndex,vvddata);
         
         float* mel_cepstrum1 = &vvddata[1];
         float* mel_cepstrum2 = &vvddata[1+cepstrum_length];
-        //TODO: 2
+        //TODO
         // getCurrentConcatenation(current_time)
-        //concatenation
-        TODO: synth->setFrame(mel_cepstrum1,mel_cepstrum2,cepstrum_length);
+        // concatenation
+        synth->setFrame(mel_cepstrum1,mel_cepstrum2,cepstrum_length);
+        synth->setF0(f0);
     } else {
         synth->setSilence();
     }
@@ -138,7 +205,7 @@ void Synth::fill(float* buffer, int size)
 
     synth->doSynth(); //synth one frame
     
-    if(synth->isFilled(size*2)) break;
+    if(synth->isFilled(size+2048)) break;
     
     }
     

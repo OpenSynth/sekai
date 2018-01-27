@@ -23,8 +23,12 @@
 #include <unistd.h>
 #include "jack.hpp"
 
+std::string basedir;
+
 int main(int argc,char *argv[])
 {
+    
+  basedir = argv[1];
   
   std::cout << "\
   \t\t\t Midi Record Play\n\

@@ -2,11 +2,12 @@
 #define SYNTH
 #include <sekai/VVDReader.h>
 #include <sekai/WorldSynth2.h>
+#include <vector>
 
 struct segment
 {
-    float x;
-    float y;
+    float* x;
+    float* y;
     int count;
 };
 
@@ -30,6 +31,8 @@ class Synth
         //input handling
         int notenum;
         int current_oto;
+        std::vector<segment*> segments;
+        bool enabled;
         
         segment* getCurrentSegment(int pos);
         float getCurrentF0(int pos);
