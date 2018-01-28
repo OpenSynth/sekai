@@ -82,6 +82,10 @@ Synth::~Synth()
 void Synth::noteOn(int notenum, int velocity)
 {
   this->notenum = notenum;
+  
+  int pitch = (int)(midi_freq(notenum)+0.5);
+  printf("pitch %i notenum %i\n",pitch,notenum);
+  
   int current_samples = synth->currentTime();//time in samples
   float current_time = current_samples*1.0/samplerate;
   

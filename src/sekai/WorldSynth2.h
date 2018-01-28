@@ -15,6 +15,7 @@ class WorldSynth2 : public OLABuffer
 
     double *aperiodic_response;
     double *periodic_response;
+    double *dc_remover;
     double *response;
     double *spectral_envelope;
     double *aperiodic_ratio;

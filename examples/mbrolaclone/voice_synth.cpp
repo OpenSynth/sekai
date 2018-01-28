@@ -56,14 +56,22 @@ VoiceSynth::VoiceSynth(VVDReader* reader)
 	
 	samplerate = reader->getSamplerate();
 	frame_period = reader->getFramePeriod();
+    #if 0
+    //this has changed
 	CheapTrickOption option = {0};
 	InitializeCheapTrickOption(&option);
 	fft_size = GetFFTSizeForCheapTrick(samplerate,&option);
+    #else
+    fft_size = 0;
+    #endif
+    
 	buffer_size = 512;
 	number_of_pointers = 100;
 	
+    #if 0
 	InitializeSynthesizer(samplerate, frame_period, fft_size,
                               buffer_size, number_of_pointers, &synth);
+    #endif
 
         //alloc events
 
@@ -293,8 +301,9 @@ void VoiceSynth::drain(FILE* outfile)
 		//fprintf(stderr,"currentTime=%f f0=%f ssinterp=%f\n",currentTime,f0,ssinterp);
 		
 		f0[rb]=myf0;
-		
+		#if 0
 		AddParameters(&f0[rb], 1, &spectrogram[rb], &aperiodicity[rb],&synth);
+        #endif
         currentTime+=reader->getFramePeriod()/1000.0;
         rb = (rb+1) % number_of_pointers;
 
@@ -308,7 +317,7 @@ void VoiceSynth::drain(FILE* outfile)
 		};
 		
 		////
-		
+		#if 0
 		int ret = SynthesisRealtime(&synth);
 		
 		if(ret)
@@ -316,13 +325,15 @@ void VoiceSynth::drain(FILE* outfile)
 			fprintf(stderr,"MBROLOID returned audio data %f\n",fill_ratio);
 			wavwrite_buffer(outfile,buffer_size,synth.buffer);
 		}
+        #endif
 
 	}
 }
 
 void VoiceSynth::drain2(FILE* outfile)
 {
-	
+    //FIXMe redundant code
+#if 0	
 	while(1)
 	{
 		int ret = SynthesisRealtime(&synth);
@@ -341,4 +352,5 @@ void VoiceSynth::drain2(FILE* outfile)
 		else
 			return;
 	}
+#endif
 }

@@ -4,6 +4,7 @@
 WorldSynth2::WorldSynth2(int bufferLen,int fft_size,int fs): OLABuffer(bufferLen), fft_size(fft_size), fs(fs){
     response = new double[fft_size];
     aperiodic_response = new double[fft_size];
+    dc_remover = new double[fft_size];
     periodic_response = new double[fft_size];
     spectral_envelope = new double[fft_size/2+1];
     aperiodic_ratio = new double[fft_size/2+1];
@@ -29,7 +30,7 @@ void WorldSynth2::doSynth()
     if(!silence)
     {
         int noise_size=period;
-        GetOneFrameSegment2(
+        GetOneFrameSegmentRT(
                     current_vuv,
                     noise_size,
                     fft_size,
@@ -41,7 +42,9 @@ void WorldSynth2::doSynth()
                     aperiodic_response,
                     periodic_response,
                     spectral_envelope,
-                    aperiodic_ratio);
+                    aperiodic_ratio,
+                    dc_remover,
+                    0.0);
     }
 
     ola(response,fft_size,period);
