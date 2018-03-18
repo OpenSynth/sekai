@@ -51,9 +51,9 @@ install(TARGETS sekai wav2vvd vvd2wav
         LIBRARY DESTINATION lib/${CMAKE_ARCH_TRIPLET}
 )
 
-add_executable(realtime_demo examples/realtime_demo/jack.cpp examples/realtime_demo/main.cpp examples/realtime_demo/synth.cpp)
+#add_executable(realtime_demo examples/realtime_demo/jack.cpp examples/realtime_demo/main.cpp examples/realtime_demo/synth.cpp)
 #add_definitions(-std=gnu++0x)
-target_link_libraries(realtime_demo jack world sndfile sekai pthread jsoncpp)
+#target_link_libraries(realtime_demo jack world sndfile sekai pthread jsoncpp)
 
-add_executable(mbrola examples/mbrolaclone/mbrola_dummy.cpp examples/mbrolaclone/voicebank_meta.cpp examples/mbrolaclone/voice_synth.cpp)
-target_link_libraries(mbrola world sekai jsoncpp)
+#add_executable(mbrola examples/mbrolaclone/mbrola_dummy.cpp examples/mbrolaclone/voicebank_meta.cpp examples/mbrolaclone/voice_synth.cpp)
+#target_link_libraries(mbrola world sekai jsoncpp)
