@@ -29,6 +29,7 @@ class OLABuffer {
     void pop(float *buffer, int bufferLen);
     bool isFilled(int size);
     int currentTime();
+    void reset();
   protected:
     float *rawData;
     int length, pos;

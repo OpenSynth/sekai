@@ -107,6 +107,14 @@ void OLABuffer::pop( float *buffer, int bufferLen ) {
   atLoc -= bufferLen;	
 }
 
+void OLABuffer::reset()
+{
+  pos = 0; // 1st position is buffer head
+  atLoc = 0;
+  timeSamples = 0;
+  memset( rawData, 0, length*sizeof(float) );
+}
+
 #ifdef TEST_OLABUFFER
 #include <sndfile.h>
 int main()
